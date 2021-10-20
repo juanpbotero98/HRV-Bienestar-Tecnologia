@@ -18,5 +18,7 @@ port = 8000
 client = udp_client.SimpleUDPClient(ip,port) #(args.ip, args.port)
 
 for x in range(100):
-    client.send_message("/HRV", random.random())
+    if x == 1:
+        client.send_message("/Start", 1)
+    client.send_message("/HRV", random.random())    
     time.sleep(10)
