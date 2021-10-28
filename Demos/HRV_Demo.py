@@ -4,14 +4,16 @@ from pyhrv.hrv import hrv
 from opensignalsreader import OpenSignalsReader
 import pyhrv
 import pyhrv.frequency_domain as fd
-
+import matplotlib.pyplot as plt
 # Load sample ECG signal stored in an OpenSignals file
 # signal = OpenSignalsReader('SampleECG.txt').signal('ECG')
 # signal_results = hrv(signal=signal)
 
 # Load sample nni series
 nni = pyhrv.utils.load_sample_nni()
-# nni_results = hrv(nni = nni)
+nni_results = hrv(nni = nni,plot_ecg=False, plot_tachogram=False, show=False)
+print('prueba')
+plt.close('all')
 tachogram = tools.tachogram(nni = nni)
 psd = fd.welch_psd(nni = nni)
 
