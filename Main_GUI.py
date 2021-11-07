@@ -15,23 +15,28 @@ from collections import defaultdict
 from operator import itemgetter
 import os 
 import pyhrv
-from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils
+import asyncio
+from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils
 
 ####################################################################################################################################
 ###############   TODO list:                                                                                         ############### 
 ###############            * Add save raw data function to utils class                                               ###############
+###############            * Add BLE scan button                                                                     ###############
+###############            * Add BLE connect button                                                                  ###############
 ####################################################################################################################################
 
 # GUI class
 class GUI:
 # -------------------- GUI Desing Initialization -----------------------
 # ----------- Labels/txt Boxes/Buttons/Variables/Flags -----------------
-    def __init__(self, root):        
+    def __init__(self, root,loop):        
     # Utility functions and modules 
         self.root = root
+        self.loop = loop
         self.osc_utils = OSC_CommUtils
         self.hrv_utils = HRV_Utils
         self.gui_utils = GUI_Utils(self.root)
+        self.ble_utils = BLE_Utils
 
     # Variables 
         self.measurement_status, self.HRV_ratio, self.HeartRate = tk.StringVar() , tk.StringVar(), tk.StringVar()
@@ -43,7 +48,8 @@ class GUI:
 
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
         # TODO: Remove ^ and add self.general_nni = []
-
+        self.selected_MAC = ''
+        
     # Flags 
         self.baseline_done, self.olfative_done, self.sound_done, self.video_done, self.interactive_done= False, False, False, False, False
 
@@ -129,35 +135,26 @@ class GUI:
         Final_BT["command"] = self.Final_BT_command
         Final_BT.place(x=615,y=90,width=75,height=40)
 
-    # Communication Settings Panel 
-        #setting parameter title label
-        CommSettings_title=tk.Label(root)
-        CommSettings_title["bg"] = "#000000"
+    #  Subjects Identification Panel
+        #setting Statistics Panel title label
+        Subjects_Name_title=tk.Label(root)
+        Subjects_Name_title["bg"] = "#000000"
         ft = tkFont.Font(family='Times',size=10)
-        CommSettings_title["font"] = ft
-        CommSettings_title["fg"] = "#fbfbfb"
-        CommSettings_title["justify"] = "center"
-        CommSettings_title["text"] = "Ajustes OSC"
-        CommSettings_title["relief"] = "raised"
-        CommSettings_title.place(x=515,y=150,width=180,height=30)
-        
+        Subjects_Name_title["font"] = ft
+        Subjects_Name_title["fg"] = "#fbfbfb"
+        Subjects_Name_title["justify"] = "center"
+        Subjects_Name_title["text"] = "Nombre del Sujeto"
+        Subjects_Name_title["relief"] = "raised"
+        Subjects_Name_title.place(x=515,y=150,width=180,height=30)
 
-        #setting width parameter txt label and box
-        #Lable
-        IP_txtLbl=tk.Label(root)
-        IP_txtLbl['font'] = ft
-        IP_txtLbl["fg"] = "#000000"
-        IP_txtLbl["justify"] = "center"
-        IP_txtLbl["text"] = "Dirección IP:"
-        IP_txtLbl.place(x=520,y=190,width=75,height=25)
-        #Box
-        self.IP_txtBox=tk.Entry(root)
-        self.IP_txtBox["borderwidth"] = "1px"
-        self.IP_txtBox["font"] = ft
-        self.IP_txtBox["fg"] = "#333333"
-        self.IP_txtBox["justify"] = "center"
-        self.IP_txtBox["text"] = "IP"
-        self.IP_txtBox.place(x=610,y=190,width=75,height=25)
+        # setting subjects name txt box
+        self.Name_txtBox=tk.Entry(root)
+        self.Name_txtBox["borderwidth"] = "1px"
+        self.Name_txtBox["font"] = ft
+        self.Name_txtBox["fg"] = "#333333"
+        self.Name_txtBox["justify"] = "center"
+        self.Name_txtBox["text"] = "Name"
+        self.Name_txtBox.place(x=520,y=190,width=170,height=25)
 
     # Status Panel 
         #setting LED Control Panel title label
@@ -286,26 +283,84 @@ class GUI:
         Save_BT["command"] = self.Save_BT_command
         Save_BT.place(x=520,y=520,width=170,height=25)
 
-    #  Subjects Identification Panel
-        #setting Statistics Panel title label
-        Subjects_Name_title=tk.Label(root)
-        Subjects_Name_title["bg"] = "#000000"
+    # OSC Settings Panel 
+        #setting parameter title label
+        CommSettings_title=tk.Label(root)
+        CommSettings_title["bg"] = "#000000"
         ft = tkFont.Font(family='Times',size=10)
-        Subjects_Name_title["font"] = ft
-        Subjects_Name_title["fg"] = "#fbfbfb"
-        Subjects_Name_title["justify"] = "center"
-        Subjects_Name_title["text"] = "Nombre del Sujeto"
-        Subjects_Name_title["relief"] = "raised"
-        Subjects_Name_title.place(x=515,y=565,width=180,height=30)
+        CommSettings_title["font"] = ft
+        CommSettings_title["fg"] = "#fbfbfb"
+        CommSettings_title["justify"] = "center"
+        CommSettings_title["text"] = "Ajustes OSC"
+        CommSettings_title["relief"] = "raised"
+        CommSettings_title.place(x=515,y=565,width=180,height=30)
+        
 
-        # setting subjects name txt box
-        self.Name_txtBox=tk.Entry(root)
-        self.Name_txtBox["borderwidth"] = "1px"
-        self.Name_txtBox["font"] = ft
-        self.Name_txtBox["fg"] = "#333333"
-        self.Name_txtBox["justify"] = "center"
-        self.Name_txtBox["text"] = "Name"
-        self.Name_txtBox.place(x=520,y=602,width=170,height=25)
+        #setting width parameter txt label and box
+        #Lable
+        IP_txtLbl=tk.Label(root)
+        IP_txtLbl['font'] = ft
+        IP_txtLbl["fg"] = "#000000"
+        IP_txtLbl["justify"] = "center"
+        IP_txtLbl["text"] = "Dirección IP:"
+        IP_txtLbl.place(x=520,y=602,width=75,height=25)
+        #Box
+        self.IP_txtBox=tk.Entry(root)
+        self.IP_txtBox["borderwidth"] = "1px"
+        self.IP_txtBox["font"] = ft
+        self.IP_txtBox["fg"] = "#333333"
+        self.IP_txtBox["justify"] = "center"
+        self.IP_txtBox["text"] = "IP"
+        self.IP_txtBox.place(x=610,y=602,width=75,height=25)
+
+    # BLE Settings Panel
+        #setting BLE Settings title label
+        BLE_Settings_title=tk.Label(root)
+        BLE_Settings_title["bg"] = "#000000"
+        ft = tkFont.Font(family='Times',size=10)
+        BLE_Settings_title["font"] = ft
+        BLE_Settings_title["fg"] = "#fbfbfb"
+        BLE_Settings_title["justify"] = "center"
+        BLE_Settings_title["text"] = "Polar Bluetooth Settings"
+        BLE_Settings_title["relief"] = "raised"
+        BLE_Settings_title.place(x=0,y=570,width=500,height=30)
+
+        #BLE Device Label
+        BLE_Device_txtLbl=tk.Label(root)
+        BLE_Device_txtLbl['font'] = ft
+        BLE_Device_txtLbl["fg"] = "#000000"
+        BLE_Device_txtLbl["justify"] = "center"
+        BLE_Device_txtLbl["anchor"] = "w"
+        BLE_Device_txtLbl["text"] = "Dispositivo:"
+        BLE_Device_txtLbl.place(x=0,y=610,width=75,height=25)
+
+        #Device dropdown selection list
+        device_tkVar = tk.StringVar()
+        self.device_list_dropdown = Combobox(root,textvariable=device_tkVar)
+        self.device_list_dropdown.place(x=80,y=610,width=150,height=25)
+
+        #setting BLE scan button
+        BLE_Scan_BT=tk.Button(root)
+        BLE_Scan_BT["bg"] = "#999999"
+        BLE_Scan_BT["font"] = ft
+        BLE_Scan_BT["fg"] = "#000000"
+        BLE_Scan_BT["justify"] = "center"
+        BLE_Scan_BT["text"] = "Buscar"
+        BLE_Scan_BT["command"] = self.BLE_Scan_BT_command
+        BLE_Scan_BT.place(x=315,y=610,width=75,height=25)
+
+        #setting BLE select button
+        Device_Select_BT=tk.Button(root)
+        Device_Select_BT["bg"] = "#999999"
+        Device_Select_BT["font"] = ft
+        Device_Select_BT["fg"] = "#000000"
+        Device_Select_BT["justify"] = "center"
+        Device_Select_BT["text"] = "Seleccionar"
+        Device_Select_BT["command"] = self.Device_Select_BT_command
+        Device_Select_BT.place(x=235,y=610,width=75,height=25)
+
+
+
 
 # -------------------- Button functions -----------------------
 
@@ -340,9 +395,9 @@ class GUI:
                         # HR should be taken from the data acquisition scheme 
                 self.osc_utils.transmit(0,HR,self.cue)
         elif self.interactive_done:
-            self.gui_utils.error_popup('La experiencia interactiva aun no ha terminado')
+            self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
         else: 
-            self.gui_utils.error_popup('La medicion final ya se ha realizado')
+            self.gui_utils.error_popup('La medicion final ya se realizó')
 
     def Save_BT_command(self):
         file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
@@ -362,10 +417,24 @@ class GUI:
         except:
             self.gui_utils.error_popup('No se ha ingresado el nombre del sujeto o el folder ya existe')
 
+    def BLE_Scan_BT_command(self):
+        device_list = asyncio.run(self.ble_utils.scan_devices())
+        self.devices_addresses = []
+        self.devices_names = []
+        for device in device_list:
+            self.devices_names.append(device.name)
+            self.devices_addresses.append(device.address)
+        self.device_list_dropdown['values'] = self.devices_names
+
+    def Device_Select_BT_command(self):
+        index = self.devices_names.index(self.device_list_dropdown.get())
+        self.selected_MAC = self.devices_addresses[index]
+        print(self.selected_MAC,self.devices_names[index])
 # -------------------- Helper functions -----------------------
 
 # -------------------- Main Code --------------------
 if __name__ == "__main__":
     root = tk.Tk()
-    gui = GUI(root)
+    loop = asyncio.get_event_loop()
+    gui = GUI(root,loop)
     root.mainloop()

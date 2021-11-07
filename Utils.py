@@ -9,8 +9,10 @@ import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import filedialog as FileDialog
 from tkinter import ttk
+import asyncio
+from bleak import BleakScanner
 
-# -------------------- OSC Communication Utils -----------------------
+# ------------- OSC Communication Utils ----------------
 class OSC_CommUtils:
     def __init__(self,ip):
         self.ip = ip 
@@ -22,6 +24,7 @@ class OSC_CommUtils:
         self.client.send_message("/HR", heart_rate)
         self.client.send_message("/Cue", cue)     
 
+# -------------------- HRV Utils -----------------------
 class HRV_Utils:
     def HRV_plots(nni):
         # Frequency comparisson graphs
@@ -38,6 +41,7 @@ class HRV_Utils:
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
 
+# -------------------- GUI Utils -----------------------
 class GUI_Utils:
     def __init__(self,master):
         self.master = master
@@ -75,3 +79,10 @@ class GUI_Utils:
         Error_txtLbl["textvariable"] = error_variable
         Error_txtLbl.place(x=0,y=45,width=window_width,height=25)
         error_variable.set(error_msg)
+
+class BLE_Utils:
+    async def scan_devices():
+        devices = await BleakScanner.discover()
+        for d in devices:
+            print(d)
+        return devices
