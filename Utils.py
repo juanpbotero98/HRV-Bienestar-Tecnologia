@@ -11,6 +11,7 @@ from tkinter import filedialog as FileDialog
 from tkinter import ttk
 import asyncio
 from bleak import BleakScanner
+from bleak.uuids import uuid16_dict
 
 # ------------- OSC Communication Utils ----------------
 class OSC_CommUtils:
@@ -81,8 +82,38 @@ class GUI_Utils:
         error_variable.set(error_msg)
 
 class BLE_Utils:
+    def __init__(self):
+        
+        uuid_dict = {v: k for k, v in uuid16_dict.items()}
+        ## UUID for model number ##
+        self.MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Model Number String")
+        )
+        ## UUID for manufacturer name ##
+        self.MANUFACTURER_NAME_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Manufacturer Name String")
+        )
+        ## UUID for battery level ##
+        self.BATTERY_LEVEL_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Battery Level")
+        )
+        ## UUID for connection establsihment with device ##
+        self.PMD_SERVICE = "FB005C80-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of stream settings ##
+        self.PMD_CONTROL = "FB005C81-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of start stream ##
+        self.PMD_DATA = "FB005C82-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of ECG Stream ##
+        self.ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
+        # For Plolar H10  sampling frequency ##
+        self.ECG_SAMPLING_FREQ = 130
+        # Container for time session time and data
+        self.ecg_session_data = []
+        self.ecg_session_time = []
+
     async def scan_devices():
         devices = await BleakScanner.discover()
         for d in devices:
             print(d)
         return devices
+    

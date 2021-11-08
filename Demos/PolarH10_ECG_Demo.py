@@ -149,7 +149,7 @@ async def run(client, debug=False):
     n = ECG_SAMPLING_FREQ
     init_time = time.time()
     started_flag = False
-    while time.time()-init_time<240:
+    while time.time()-init_time<40:
         print(time.time()-init_time)
         ## Collecting ECG data for 1 second
         await asyncio.sleep(1)

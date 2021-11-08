@@ -8,7 +8,8 @@ matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import matplotlib.animation as animation
-from time import sleep,time
+from time import sleep
+import time
 from statistics import mean, pstdev, mode
 import numpy as np
 from collections import defaultdict
@@ -16,6 +17,7 @@ from operator import itemgetter
 import os 
 import pyhrv
 import asyncio
+from bleak import BleakClient
 from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils
 
 ####################################################################################################################################
@@ -47,8 +49,24 @@ class GUI:
         self.export_path = os.path.join(os.path.abspath(os.getcwd()),"HRV_Reports")
 
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
-        # TODO: Remove ^ and add self.general_nni = []
+        # TODO: Remove ^ and add self.general_nni = []\
+        
+        # Container for time session time and data
+        self.ecg_session_data = []
+        self.ecg_session_time = []
+        self.general_ecg = []
+
+    # BLE Variables
         self.selected_MAC = ''
+        ## UUID for connection establsihment with device ##
+        self.PMD_SERVICE = "FB005C80-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of stream settings ##
+        self.PMD_CONTROL = "FB005C81-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of start stream ##
+        self.PMD_DATA = "FB005C82-02E7-F387-1CAD-8ACD2D8DF0C8"
+        ## UUID for Request of ECG Stream ##
+        self.ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
+
         
     # Flags 
         self.baseline_done, self.olfative_done, self.sound_done, self.video_done, self.interactive_done= False, False, False, False, False
@@ -209,10 +227,22 @@ class GUI:
         Plot_title.place(x=0,y=0,width=500,height=30)
         
         # plt.ion()
-        self.figure,self.ax = plt.subplots()
+        # self.figure,self.ax = plt.subplots()
         # plt.axis('off')
-        plt.subplots_adjust(left=0.114, bottom=0.186, right=0.97, top=0.94)
-        plot_canvas = FigureCanvasTkAgg(self.figure, master=root)
+        # plt.subplots_adjust(left=0.114, bottom=0.186, right=0.97, top=0.94)
+
+        ## Plot configurations
+        plt.style.use("ggplot")
+        plt.ion()
+        self.fig = plt.figure(figsize=(15, 6))
+        self.ax = self.fig.add_subplot()
+        # self.fig.show()
+
+        plt.title("Live ECG Stream on Polar-H10", fontsize=15, )
+        plt.ylabel("Voltage in millivolts", fontsize=15)
+        plt.xlabel("Time in (ms)", fontsize=10, )
+
+        plot_canvas = FigureCanvasTkAgg(self.fig, master=root)
         plot_canvas.get_tk_widget().place(x=0,y=30,width = 500 , height = 535)
 
         toolbar = NavigationToolbar2Tk(plot_canvas, root)
@@ -359,9 +389,6 @@ class GUI:
         Device_Select_BT["command"] = self.Device_Select_BT_command
         Device_Select_BT.place(x=235,y=610,width=75,height=25)
 
-
-
-
 # -------------------- Button functions -----------------------
 
     def Start_BT_command(self):
@@ -377,11 +404,14 @@ class GUI:
         if not self.baseline_done:
             init_time = time.time()
             self.cue = 0 
-            while time.time()-init_time< 240: 
-                # TODO: Add polar data acquisition scheme
-                HR = 80 # Added for testing purpouses 
-                        # HR should be taken from the data acquisition scheme 
-                self.osc_utils.transmit(0,HR,self.cue)
+            # while time.time()-init_time< 240: 
+            #     # TODO: Add polar data acquisition scheme
+            #     HR = 80 # Added for testing purpouses 
+            #             # HR should be taken from the data acquisition scheme 
+            #     self.osc_utils.transmit(0,HR,self.cue)
+            
+            # self.loop.run_until_complete(self.main_acquisition())
+            asyncio.run(self.main_acquisition())
         else: 
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
@@ -429,11 +459,135 @@ class GUI:
     def Device_Select_BT_command(self):
         index = self.devices_names.index(self.device_list_dropdown.get())
         self.selected_MAC = self.devices_addresses[index]
-        print(self.selected_MAC,self.devices_names[index])
-# -------------------- Helper functions -----------------------
+        
+# --------------- Helper functions ------------------
+    async def main_acquisition(self):
+        try:
+            async with BleakClient(self.selected_MAC) as client:
+                # tasks = [
+                #     asyncio.ensure_future(self.perform_measurement(client)),
+                # ]
 
-# -------------------- Main Code --------------------
+                # await asyncio.gather(*tasks)
+
+                print(f"Connected: {client.is_connected}")
+
+                # model_number = await client.read_gatt_char(self.ble_utils.MODEL_NBR_UUID)
+                # print("Model Number: {0}".format("".join(map(chr, model_number))))
+
+                # manufacturer_name = await client.read_gatt_char(self.ble_utils.MANUFACTURER_NAME_UUID)
+                # print("Manufacturer Name: {0}".format("".join(map(chr, manufacturer_name))))
+
+                # battery_level = await client.read_gatt_char(self.ble_utils.BATTERY_LEVEL_UUID)
+                # print("Battery Level: {0}%".format(int(battery_level[0])))
+
+                att_read = await client.read_gatt_char(self.PMD_CONTROL)
+                print(att_read)
+
+                await client.write_gatt_char(self.PMD_CONTROL, self.ECG_WRITE)
+
+                ## ECG stream started
+                await client.start_notify(self.PMD_DATA, self.data_conv)
+                print("Collecting ECG data...")
+                n = 130
+                init_time = time.time()
+                started_flag = False
+                while time.time()-init_time<40:
+                    print(time.time()-init_time)
+                    ## Collecting ECG data for 1 second
+                    await asyncio.sleep(1)
+                    # print(len(ecg_session_data),len(ecg_session_time))
+
+                    if len(self.ecg_session_data)>0 :
+                        if not started_flag:
+                            init_time = time.time()
+                            started_flag =True
+                            print('entered if')
+                    
+                    if len(self.ecg_session_data)>0 & started_flag:
+                        plt.autoscale(enable=True, axis="y", tight=True)
+                        self.ax.plot(self.ecg_session_data,color="r")
+                        self.fig.canvas.draw()
+                        self.fig.canvas.flush_events()
+                        self.ax.set_xlim(left=n - 130, right=n)
+                        n = n + 130
+                # await client.stop_notify(self.ble_utils.PMD_DATA)
+        except: 
+            self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
+
+    async def perform_measurement(self,client):
+        # await client.is_connected()
+        # print("---------Device connected--------------")
+
+        print(f"Connected: {client.is_connected}")
+
+        # model_number = await client.read_gatt_char(self.ble_utils.MODEL_NBR_UUID)
+        # print("Model Number: {0}".format("".join(map(chr, model_number))))
+
+        # manufacturer_name = await client.read_gatt_char(self.ble_utils.MANUFACTURER_NAME_UUID)
+        # print("Manufacturer Name: {0}".format("".join(map(chr, manufacturer_name))))
+
+        # battery_level = await client.read_gatt_char(self.ble_utils.BATTERY_LEVEL_UUID)
+        # print("Battery Level: {0}%".format(int(battery_level[0])))
+
+        att_read = await client.read_gatt_char(self.ble_utils.PMD_CONTROL)
+        print(att_read)
+
+        await client.write_gatt_char(self.ble_utils.PMD_CONTROL, self.ble_utils.ECG_WRITE)
+
+        ## ECG stream started
+        await client.start_notify(self.ble_utils.PMD_DATA, self.ble_utils.data_conv)
+        n = self.ble_utils.ECG_SAMPLING_FREQ
+        init_time = time.time()
+        started_flag = False
+        while time.time()-init_time<40:
+            print(time.time()-init_time)
+            ## Collecting ECG data for 1 second
+            await asyncio.sleep(1)
+            # print(len(ecg_session_data),len(ecg_session_time))
+
+            if len(self.ble_utils.ecg_session_data)>0 :
+                if not started_flag:
+                    init_time = time.time()
+                    started_flag =True
+                    print('entered if')
+            
+            if len(self.ble_utils.ecg_session_data)>0 & started_flag:
+                plt.autoscale(enable=True, axis="y", tight=True)
+                self.ax.plot(self.ble_utils.ecg_session_data,color="r")
+                self.fig.canvas.draw()
+                self.fig.canvas.flush_events()
+                self.ax.set_xlim(left=n - 130, right=n)
+                n = n + 130
+        await client.stop_notify(self.ble_utils.PMD_DATA)
+
+    # Bit conversion of the Hexadecimal stream
+    def data_conv(self, sender, data):
+        if data[0] == 0x00:
+            timestamp = self.convert_to_unsigned_long(data, 1, 8)
+            step = 3
+            samples = data[10:]
+            offset = 0
+            while offset < len(samples):
+                ecg = self.convert_array_to_signed_int(samples, offset, step)
+                offset += step
+                self.ecg_session_data.extend([ecg])
+                self.ecg_session_time.extend([timestamp])
+
+
+    def convert_array_to_signed_int(self,data, offset, length):
+        return int.from_bytes(
+            bytearray(data[offset : offset + length]), byteorder="little", signed=True,
+        )
+
+
+    def convert_to_unsigned_long(self,data, offset, length):
+        return int.from_bytes(
+            bytearray(data[offset : offset + length]), byteorder="little", signed=False,
+        )
+# ------------------ Main Code ----------------------
 if __name__ == "__main__":
+    os.environ["PYTHONASYNCIODEBUG"] = str(1)
     root = tk.Tk()
     loop = asyncio.get_event_loop()
     gui = GUI(root,loop)
