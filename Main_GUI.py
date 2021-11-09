@@ -19,6 +19,7 @@ import pyhrv
 import asyncio
 from bleak import BleakClient
 from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils
+from bleak.uuids import uuid16_dict
 
 ####################################################################################################################################
 ###############   TODO list:                                                                                         ############### 
@@ -35,13 +36,13 @@ class GUI:
     # Utility functions and modules 
         self.root = root
         self.loop = loop
-        self.osc_utils = OSC_CommUtils
+        self.osc_utils = OSC_CommUtils(ip="192.168.0.3")
         self.hrv_utils = HRV_Utils
         self.gui_utils = GUI_Utils(self.root)
         self.ble_utils = BLE_Utils
 
     # Variables 
-        self.measurement_status, self.HRV_ratio, self.HeartRate = tk.StringVar() , tk.StringVar(), tk.StringVar()
+        self.measurement_status, self.HRV_ratio, self.HeartRate, self.battery_percentage = tk.StringVar() , tk.StringVar(), tk.StringVar(), tk.StringVar()
         self.HF_LF, self.bpm = tk.IntVar(),tk.IntVar()
 
         self.section_times = [240,240,240,240,240,240]  # [Init , olfative, video, sound, interactive, Final]
@@ -54,9 +55,10 @@ class GUI:
         # Container for time session time and data
         self.ecg_session_data = []
         self.ecg_session_time = []
-        self.general_ecg = []
+        self.general_ecg = [[],[],[],[],[],[]] # Data container for ECG data [Init , olfative, sound, video, interactive, Final]
 
     # BLE Variables
+        # MAC Addres of the device to connect
         self.selected_MAC = ''
         ## UUID for connection establsihment with device ##
         self.PMD_SERVICE = "FB005C80-02E7-F387-1CAD-8ACD2D8DF0C8"
@@ -66,10 +68,24 @@ class GUI:
         self.PMD_DATA = "FB005C82-02E7-F387-1CAD-8ACD2D8DF0C8"
         ## UUID for Request of ECG Stream ##
         self.ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
+        ## UUID Dictonary
+        uuid_dict = {v: k for k, v in uuid16_dict.items()}
+        ## UUID for model number ##
+        self.MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Model Number String")
+        )
+        ## UUID for manufacturer name ##
+        self.MANUFACTURER_NAME_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Manufacturer Name String")
+        )
+        ## UUID for battery level ##
+        self.BATTERY_LEVEL_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
+            uuid_dict.get("Battery Level")
+        )
 
         
     # Flags 
-        self.baseline_done, self.olfative_done, self.sound_done, self.video_done, self.interactive_done= False, False, False, False, False
+        self.baseline_done, self.experience_done= False, False
 
     # Canvas operations
         #setting main tittle
@@ -229,18 +245,19 @@ class GUI:
         # plt.ion()
         # self.figure,self.ax = plt.subplots()
         # plt.axis('off')
-        # plt.subplots_adjust(left=0.114, bottom=0.186, right=0.97, top=0.94)
+        
 
         ## Plot configurations
         plt.style.use("ggplot")
-        plt.ion()
+        # plt.ion()
         self.fig = plt.figure(figsize=(15, 6))
         self.ax = self.fig.add_subplot()
+        plt.subplots_adjust(left=0.11, bottom=0.143, right=0.964, top=0.976)
         # self.fig.show()
 
-        plt.title("Live ECG Stream on Polar-H10", fontsize=15, )
-        plt.ylabel("Voltage in millivolts", fontsize=15)
-        plt.xlabel("Time in (ms)", fontsize=10, )
+        # plt.title("Live ECG Stream on Polar-H10", fontsize=15, )
+        plt.ylabel("Voltaje [mV]", fontsize=10)
+        plt.xlabel("Tiempo [ms]", fontsize=10, )
 
         plot_canvas = FigureCanvasTkAgg(self.fig, master=root)
         plot_canvas.get_tk_widget().place(x=0,y=30,width = 500 , height = 535)
@@ -362,12 +379,12 @@ class GUI:
         BLE_Device_txtLbl["justify"] = "center"
         BLE_Device_txtLbl["anchor"] = "w"
         BLE_Device_txtLbl["text"] = "Dispositivo:"
-        BLE_Device_txtLbl.place(x=0,y=610,width=75,height=25)
+        BLE_Device_txtLbl.place(x=0,y=610,width=70,height=25)
 
         #Device dropdown selection list
         device_tkVar = tk.StringVar()
         self.device_list_dropdown = Combobox(root,textvariable=device_tkVar)
-        self.device_list_dropdown.place(x=80,y=610,width=150,height=25)
+        self.device_list_dropdown.place(x=75,y=610,width=150,height=25)
 
         #setting BLE scan button
         BLE_Scan_BT=tk.Button(root)
@@ -377,7 +394,7 @@ class GUI:
         BLE_Scan_BT["justify"] = "center"
         BLE_Scan_BT["text"] = "Buscar"
         BLE_Scan_BT["command"] = self.BLE_Scan_BT_command
-        BLE_Scan_BT.place(x=315,y=610,width=75,height=25)
+        BLE_Scan_BT.place(x=310,y=610,width=75,height=25)
 
         #setting BLE select button
         Device_Select_BT=tk.Button(root)
@@ -387,12 +404,29 @@ class GUI:
         Device_Select_BT["justify"] = "center"
         Device_Select_BT["text"] = "Seleccionar"
         Device_Select_BT["command"] = self.Device_Select_BT_command
-        Device_Select_BT.place(x=235,y=610,width=75,height=25)
+        Device_Select_BT.place(x=230,y=610,width=75,height=25)
+
+        #Baterry Label
+        self.Battery_txtLbl=tk.Label(root)
+        self.Battery_txtLbl['font'] = ft
+        self.Battery_txtLbl["fg"] = "#000000"
+        self.Battery_txtLbl["justify"] = "center"
+        self.Battery_txtLbl["text"] = "Batería:"
+
+        #Battery percentage label
+        self.Battery_Percentage_txtLbl=tk.Label(root)
+        self.Battery_Percentage_txtLbl['font'] = ft
+        self.Battery_Percentage_txtLbl["justify"] = "center"
+        self.Battery_Percentage_txtLbl["anchor"] = "w"
+        self.Battery_Percentage_txtLbl["textvariable"] =  self.battery_percentage
 
 # -------------------- Button functions -----------------------
 
     def Start_BT_command(self):
         print('start')
+        self.start_status = 1
+        asyncio.run(self.main_acquisition(loop = 4))
+        self.experience_done = True
 
     def Stop_BT_command(self):
         self.root.quit()                 # stops mainloop
@@ -402,32 +436,21 @@ class GUI:
 
     def Init_BT_command(self):
         if not self.baseline_done:
-            init_time = time.time()
-            self.cue = 0 
-            # while time.time()-init_time< 240: 
-            #     # TODO: Add polar data acquisition scheme
-            #     HR = 80 # Added for testing purpouses 
-            #             # HR should be taken from the data acquisition scheme 
-            #     self.osc_utils.transmit(0,HR,self.cue)
-            
-            # self.loop.run_until_complete(self.main_acquisition())
-            asyncio.run(self.main_acquisition())
+            self.cue = 0 # Cue variable that controls the experience flow
+            self.start_status = 0 # Start variable that controls the experience start/stop
+            asyncio.run(self.main_acquisition(loop = 1))
         else: 
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
     def Final_BT_command(self):
-        if not self.baseline_done:
-            init_time = time.time()
+        if self.experience_done and (not self.final_done):
             self.cue = 0 
-            while time.time()-init_time< 240: 
-                # TODO: Add polar data acquisition scheme
-                HR = 80 # Added for testing purpouses 
-                        # HR should be taken from the data acquisition scheme 
-                self.osc_utils.transmit(0,HR,self.cue)
-        elif self.interactive_done:
-            self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
-        else: 
+            self.start_status = 0
+            asyncio.run(self.main_acquisition(loop = 1))
+        elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó')
+        else: 
+            self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
 
     def Save_BT_command(self):
         file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
@@ -457,26 +480,28 @@ class GUI:
         self.device_list_dropdown['values'] = self.devices_names
 
     def Device_Select_BT_command(self):
+        # Establish MAC Address and get device battery level
         index = self.devices_names.index(self.device_list_dropdown.get())
         self.selected_MAC = self.devices_addresses[index]
+        self.battery_level = asyncio.run(self.get_battery())
+        # Place Baterry level indicator
+        self.Battery_txtLbl.place(x=400,y=610,width=50,height=25)
+        if self.battery_level >= 60:
+            self.Battery_Percentage_txtLbl['fg'] = "#30cc00"
+        elif self.battery_level <= 20: 
+            self.Battery_Percentage_txtLbl['fg'] = "#cc0000"
+        else:
+            self.Battery_Percentage_txtLbl['fg'] = "orange"
+        self.battery_percentage.set("{0}%".format(self.battery_level))
+        self.Battery_Percentage_txtLbl.place(x=455,y=610,width=50,height=25)
+        
         
 # --------------- Helper functions ------------------
-    async def main_acquisition(self):
+    # Acquisition Loop
+    async def main_acquisition(self,loop):
         try:
             async with BleakClient(self.selected_MAC) as client:
-                # tasks = [
-                #     asyncio.ensure_future(self.perform_measurement(client)),
-                # ]
-
-                # await asyncio.gather(*tasks)
-
                 print(f"Connected: {client.is_connected}")
-
-                # model_number = await client.read_gatt_char(self.ble_utils.MODEL_NBR_UUID)
-                # print("Model Number: {0}".format("".join(map(chr, model_number))))
-
-                # manufacturer_name = await client.read_gatt_char(self.ble_utils.MANUFACTURER_NAME_UUID)
-                # print("Manufacturer Name: {0}".format("".join(map(chr, manufacturer_name))))
 
                 # battery_level = await client.read_gatt_char(self.ble_utils.BATTERY_LEVEL_UUID)
                 # print("Battery Level: {0}%".format(int(battery_level[0])))
@@ -490,76 +515,46 @@ class GUI:
                 await client.start_notify(self.PMD_DATA, self.data_conv)
                 print("Collecting ECG data...")
                 n = 130
-                init_time = time.time()
                 started_flag = False
-                while time.time()-init_time<40:
-                    print(time.time()-init_time)
-                    ## Collecting ECG data for 1 second
-                    await asyncio.sleep(1)
-                    # print(len(ecg_session_data),len(ecg_session_time))
+                for i in range(loop):
+                    self.ecg_session_data = []
+                    self.ecg_session_time = []
+                    init_time = time.time()
+                    while time.time()-init_time<40:
+                        print(time.time()-init_time)
+                        ## Collecting ECG data for 1 second
+                        await asyncio.sleep(1)
+                        # print(len(ecg_session_data),len(ecg_session_time))
 
-                    if len(self.ecg_session_data)>0 :
-                        if not started_flag:
-                            init_time = time.time()
-                            started_flag =True
-                            print('entered if')
+                        if len(self.ecg_session_data)>0 :
+                            if not started_flag:
+                                init_time = time.time()
+                                started_flag =True
+                                # print('entered if')
+                        
+                        if len(self.ecg_session_data)>0 & started_flag:
+                            plt.autoscale(enable=True, axis="y", tight=True)
+                            self.ax.plot(self.ecg_session_data,color="r")
+                            self.fig.canvas.draw()
+                            self.fig.canvas.flush_events()
+                            self.ax.set_xlim(left=n - 130, right=n)
+                            n = n + 130
+                            self.osc_utils.transmit(self.start_status,80,self.cue)
+                    if not self.baseline_done:
+                        self.general_ecg[i] = [self.ecg_session_data,self.ecg_session_time]
+                        self.baseline_done = True
+
+                    elif not self.experience_done:
+                        self.general_ecg[i+1] = [self.ecg_session_data,self.ecg_session_time]
+                        # self.experience_done = True
                     
-                    if len(self.ecg_session_data)>0 & started_flag:
-                        plt.autoscale(enable=True, axis="y", tight=True)
-                        self.ax.plot(self.ecg_session_data,color="r")
-                        self.fig.canvas.draw()
-                        self.fig.canvas.flush_events()
-                        self.ax.set_xlim(left=n - 130, right=n)
-                        n = n + 130
+                    else: 
+                        self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
+                        self.final_done = True
+                    self.cue += 1
                 # await client.stop_notify(self.ble_utils.PMD_DATA)
         except: 
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
-
-    async def perform_measurement(self,client):
-        # await client.is_connected()
-        # print("---------Device connected--------------")
-
-        print(f"Connected: {client.is_connected}")
-
-        # model_number = await client.read_gatt_char(self.ble_utils.MODEL_NBR_UUID)
-        # print("Model Number: {0}".format("".join(map(chr, model_number))))
-
-        # manufacturer_name = await client.read_gatt_char(self.ble_utils.MANUFACTURER_NAME_UUID)
-        # print("Manufacturer Name: {0}".format("".join(map(chr, manufacturer_name))))
-
-        # battery_level = await client.read_gatt_char(self.ble_utils.BATTERY_LEVEL_UUID)
-        # print("Battery Level: {0}%".format(int(battery_level[0])))
-
-        att_read = await client.read_gatt_char(self.ble_utils.PMD_CONTROL)
-        print(att_read)
-
-        await client.write_gatt_char(self.ble_utils.PMD_CONTROL, self.ble_utils.ECG_WRITE)
-
-        ## ECG stream started
-        await client.start_notify(self.ble_utils.PMD_DATA, self.ble_utils.data_conv)
-        n = self.ble_utils.ECG_SAMPLING_FREQ
-        init_time = time.time()
-        started_flag = False
-        while time.time()-init_time<40:
-            print(time.time()-init_time)
-            ## Collecting ECG data for 1 second
-            await asyncio.sleep(1)
-            # print(len(ecg_session_data),len(ecg_session_time))
-
-            if len(self.ble_utils.ecg_session_data)>0 :
-                if not started_flag:
-                    init_time = time.time()
-                    started_flag =True
-                    print('entered if')
-            
-            if len(self.ble_utils.ecg_session_data)>0 & started_flag:
-                plt.autoscale(enable=True, axis="y", tight=True)
-                self.ax.plot(self.ble_utils.ecg_session_data,color="r")
-                self.fig.canvas.draw()
-                self.fig.canvas.flush_events()
-                self.ax.set_xlim(left=n - 130, right=n)
-                n = n + 130
-        await client.stop_notify(self.ble_utils.PMD_DATA)
 
     # Bit conversion of the Hexadecimal stream
     def data_conv(self, sender, data):
@@ -574,17 +569,28 @@ class GUI:
                 self.ecg_session_data.extend([ecg])
                 self.ecg_session_time.extend([timestamp])
 
-
     def convert_array_to_signed_int(self,data, offset, length):
         return int.from_bytes(
             bytearray(data[offset : offset + length]), byteorder="little", signed=True,
         )
 
-
     def convert_to_unsigned_long(self,data, offset, length):
         return int.from_bytes(
             bytearray(data[offset : offset + length]), byteorder="little", signed=False,
         )
+
+    # Get device battery
+    async def get_battery(self):
+        try:
+            async with BleakClient(self.selected_MAC) as client:
+                print(f"Connected: {client.is_connected}")
+                battery_level = await client.read_gatt_char(self.BATTERY_LEVEL_UUID)
+                print("Battery Level: {0}%".format(int(battery_level[0])))
+                return int(battery_level[0])
+        
+        except:
+            self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
+
 # ------------------ Main Code ----------------------
 if __name__ == "__main__":
     os.environ["PYTHONASYNCIODEBUG"] = str(1)
