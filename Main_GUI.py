@@ -46,7 +46,7 @@ class GUI:
         self.HF_LF, self.bpm = tk.IntVar(),tk.IntVar()
 
         self.section_times = [240,240,240,240,240,240]  # [Init , olfative, video, sound, interactive, Final]
-        self.section_names = ["Toma de datos previa","Experiecia olfativa",  "Experiencia de sonido", "Experiencia de video","Experiencia interactiva", "Toma de datos final"]
+        self.section_names = ["Experiecia olfativa",  "Experiencia de sonido", "Experiencia de video","Experiencia interactiva"]
         self.export_path = os.path.join(os.path.abspath(os.getcwd()),"HRV_Reports")
 
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
@@ -82,10 +82,10 @@ class GUI:
         self.BATTERY_LEVEL_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
             uuid_dict.get("Battery Level")
         )
-
-        
+ 
     # Flags 
-        self.baseline_done, self.experience_done= False, False
+        self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
+        self.hrv_exported, self.ecg_saved = False, False
 
     # Canvas operations
         #setting main tittle
@@ -209,7 +209,7 @@ class GUI:
         Status_txtLbl["justify"] = "left"
         Status_txtLbl["anchor"] = "w"
         Status_txtLbl["textvariable"] = self.measurement_status
-        Status_txtLbl.place(x=520,y=265,width=75,height=25)
+        Status_txtLbl.place(x=520,y=265,width=170,height=25)
         self.measurement_status.set('Estado: ')
 
         #Setting progress widget
@@ -222,7 +222,7 @@ class GUI:
         self.MeasurementPB_txtLbl["text"] = "Progreso:"
         self.MeasurementPB_txtLbl.place(x=520,y=300,width=75,height=25)
         #Widget
-        self.measurement_pb = Progressbar(self.root, orient='horizontal', length=150, mode='indeterminate',maximum = 35)
+        self.measurement_pb = Progressbar(self.root, orient='horizontal', length=100, mode='indeterminate',maximum = 35)
         #Done message
         self.done_mssg=tk.Label(root)
         self.done_mssg['font'] = ft
@@ -423,10 +423,13 @@ class GUI:
 # -------------------- Button functions -----------------------
 
     def Start_BT_command(self):
-        print('start')
-        self.start_status = 1
-        asyncio.run(self.main_acquisition(loop = 4))
-        self.experience_done = True
+        if self.baseline_done:
+            print('start')
+            self.start_status = 1
+            asyncio.run(self.main_acquisition(loop = 4))
+            self.experience_done = True
+        else:
+            self.gui_utils.error_popup('No se ha realizado la medición baseline')
 
     def Stop_BT_command(self):
         self.root.quit()                 # stops mainloop
@@ -438,7 +441,16 @@ class GUI:
         if not self.baseline_done:
             self.cue = 0 # Cue variable that controls the experience flow
             self.start_status = 0 # Start variable that controls the experience start/stop
+            self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1))
+            self.done_mssg.place(x=600,y=300,width=75,height=25)
+        elif self.baseline_done and self.final_done:
+            self.restart_vars()
+            self.cue = 0 # Cue variable that controls the experience flow
+            self.start_status = 0 # Start variable that controls the experience start/stop
+            self.measurement_status.set('Estado:        Baseline')
+            asyncio.run(self.main_acquisition(loop = 1))
+            self.done_mssg.place(x=600,y=300,width=75,height=25)    
         else: 
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
@@ -446,6 +458,7 @@ class GUI:
         if self.experience_done and (not self.final_done):
             self.cue = 0 
             self.start_status = 0
+            self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1))
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó')
@@ -454,6 +467,8 @@ class GUI:
 
     def Save_BT_command(self):
         file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
+        # TODO: Manage ecg file save system.
+        self.ecg_saved = True
         print('Save')
 
     def Plot_DataAnalisis_BT_command(self):
@@ -466,7 +481,8 @@ class GUI:
             os.mkdir(exprt_pth)
             fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
             for i in range(len(fnames)):
-                self.hrv_utils.Export_HRV(fnames[i],os.path.join(exprt_pth,""),self.nni_list[i])
+                self.hrv_utils.Export_HRV(fnames[i],os.path.join(exprt_pth,""),self.general_ecg[i][0])
+            self.hrv_exported = True
         except:
             self.gui_utils.error_popup('No se ha ingresado el nombre del sujeto o el folder ya existe')
 
@@ -486,7 +502,9 @@ class GUI:
         self.battery_level = asyncio.run(self.get_battery())
         # Place Baterry level indicator
         self.Battery_txtLbl.place(x=400,y=610,width=50,height=25)
-        if self.battery_level >= 60:
+        if self.battery_level is None:
+            pass
+        elif self.battery_level >= 60:
             self.Battery_Percentage_txtLbl['fg'] = "#30cc00"
         elif self.battery_level <= 20: 
             self.Battery_Percentage_txtLbl['fg'] = "#cc0000"
@@ -514,11 +532,30 @@ class GUI:
                 ## ECG stream started
                 await client.start_notify(self.PMD_DATA, self.data_conv)
                 print("Collecting ECG data...")
-                n = 130
-                started_flag = False
+
+                # Managing progress bar and labels
+                if self.baseline_done or self.experience_done:
+                    # Destroy the done label and re-define the progressbar widget and labels
+                    self.done_mssg.destroy()
+                    #Widget
+                    self.measurement_pb = Progressbar(self.root, orient='horizontal', length=100, mode='indeterminate',maximum = 35)
+                    #Done message
+                    self.done_mssg=tk.Label(self.root)
+                    self.done_mssg['font'] = self.ft
+                    self.done_mssg["fg"] = "#30cc00"
+                    self.done_mssg["justify"] = "right"
+                    self.done_mssg["text"] = "Terminado"
+                self.measurement_pb.start(interval = 1) #Start the progress bar
+                self.measurement_pb.place(x=590,y=300)
+
+                # Main acquisition loop
                 for i in range(loop):
+                    n = 130
+                    started_flag = False
                     self.ecg_session_data = []
                     self.ecg_session_time = []
+                    if loop > 1:
+                        self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
                     while time.time()-init_time<40:
                         print(time.time()-init_time)
@@ -532,7 +569,7 @@ class GUI:
                                 started_flag =True
                                 # print('entered if')
                         
-                        if len(self.ecg_session_data)>0 & started_flag:
+                        if len(self.ecg_session_data)>0 and started_flag:
                             plt.autoscale(enable=True, axis="y", tight=True)
                             self.ax.plot(self.ecg_session_data,color="r")
                             self.fig.canvas.draw()
@@ -552,10 +589,17 @@ class GUI:
                         self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
                         self.final_done = True
                     self.cue += 1
+                    # Restart figure
+                    self.ax.cla()
+                # Stop progressbar
+                self.measurement_pb.stop()
+                self.measurement_pb.destroy()
+                # Set done label
+                self.done_mssg.place(x=600,y=300,width=75,height=25)
                 # await client.stop_notify(self.ble_utils.PMD_DATA)
         except: 
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
-
+    
     # Bit conversion of the Hexadecimal stream
     def data_conv(self, sender, data):
         if data[0] == 0x00:
@@ -590,6 +634,17 @@ class GUI:
         
         except:
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
+
+    # Restart variables
+    def restart_vars(self):
+        if self.ecg_saved or self.hrv_exported:
+            # Restart ecg data container
+            self.general_ecg = [[],[],[],[],[],[]]
+            # Restart flags
+            self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
+            self.hrv_exported, self.ecg_saved = False, False
+        else:
+            self.gui_utils.error_popup('Guarde primero la medición anterior antes de iniciar una nueva')
 
 # ------------------ Main Code ----------------------
 if __name__ == "__main__":

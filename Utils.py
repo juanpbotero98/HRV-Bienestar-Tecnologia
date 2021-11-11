@@ -37,8 +37,8 @@ class HRV_Utils:
         params = ['nni_mean', 'sdnn', 'rmssd', 'nn50', 'nn20']
         tools.radar_chart(nni = init_nni, comparison_nni=final_nni, parameters=params)
 
-    def Export_HRV(fname,export_path,nni):
-        results = pyhrv.hrv(nni=nni,plot_ecg=False, plot_tachogram=False, show=False)
+    def Export_HRV(fname,export_path,ecg):
+        results = pyhrv.hrv(signal=ecg,sampling_rate=130,plot_ecg=False, plot_tachogram=False, show=False)
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
 
