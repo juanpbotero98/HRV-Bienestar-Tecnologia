@@ -33,15 +33,15 @@ class GUI:
 # -------------------- GUI Desing Initialization -----------------------
 # ----------- Labels/txt Boxes/Buttons/Variables/Flags -----------------
     def __init__(self, root,loop):        
-    # Utility functions and modules 
+    # Utility functions and modules
         self.root = root
         self.loop = loop
-        self.osc_utils = OSC_CommUtils(ip="192.168.0.3")
+        # self.osc_utils = OSC_CommUtils(ip="157.253.138.93")
         self.hrv_utils = HRV_Utils
         self.gui_utils = GUI_Utils(self.root)
         self.ble_utils = BLE_Utils
 
-    # Variables 
+    # Variables
         self.measurement_status, self.HRV_ratio, self.HeartRate, self.battery_percentage = tk.StringVar() , tk.StringVar(), tk.StringVar(), tk.StringVar()
         self.HF_LF, self.bpm = tk.IntVar(),tk.IntVar()
 
@@ -51,7 +51,7 @@ class GUI:
 
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
         # TODO: Remove ^ and add self.general_nni = []\
-        
+       
         # Container for time session time and data
         self.ecg_session_data = []
         self.ecg_session_time = []
@@ -83,7 +83,7 @@ class GUI:
             uuid_dict.get("Battery Level")
         )
  
-    # Flags 
+    # Flags
         self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
         self.hrv_exported, self.ecg_saved = False, False
 
@@ -95,7 +95,7 @@ class GUI:
         window_height=640
         screenwidth = root.winfo_screenwidth()
         screenheight = root.winfo_screenheight()
-        alignstr = '%dx%d+%d+%d' % (window_width, window_height, (screenwidth - window_width) / 2, 
+        alignstr = '%dx%d+%d+%d' % (window_width, window_height, (screenwidth - window_width) / 2,
                                     (screenheight - window_height) / 2)
         root.geometry(alignstr)
         root.resizable(width=False, height=False)    
@@ -103,21 +103,21 @@ class GUI:
         self.canvas = tk.Canvas(root)
         # self.canvas.create_line(0,400,400,400,dash=(4,2))
         self.canvas.create_line(505,0,505,window_height,dash=(4,2))
-        
+       
         #setting separation rectangles
         self.canvas.create_rectangle(515,30,695,140,fill = '#ededed') # Control panel separation
         self.canvas.create_rectangle(515,150,695,225,fill = '#ededed') # Communication Settings separation
         self.canvas.create_rectangle(515,235,695,325,fill = '#ededed') # Status panel separation
         self.canvas.create_rectangle(515,335,695,435,fill = '#ededed') # Data Analisis separation
-        self.canvas.create_rectangle(515,445,695,555,fill = '#ededed') # Data Analisis separation   
+        self.canvas.create_rectangle(515,445,695,555,fill = '#ededed') # Data Analisis separation  
         self.canvas.create_rectangle(515,565,695,635,fill = '#ededed') # Data Analisis separation
 
-        
+       
         self.canvas.pack(fill= 'both', expand=1)
         #setting font
         self.ft = tkFont.Font(family='Times',size=10)
 
-    # Measurement Control Panel 
+    # Measurement Control Panel
         #setting  title label
         Controls_title=tk.Label(root)
         Controls_title["bg"] = "#000000"
@@ -128,7 +128,7 @@ class GUI:
         Controls_title["text"] = "Funciones de Control"
         Controls_title["relief"] = "raised"
         Controls_title.place(x=515,y=0,width=180,height=30)
-        
+       
         #setting start button
         Start_BT=tk.Button(root)
         Start_BT["bg"] = "#30cc00"
@@ -138,7 +138,7 @@ class GUI:
         Start_BT["text"] = "Start"
         Start_BT["command"] = self.Start_BT_command
         Start_BT.place(x=520,y=40,width=75,height=40)
-        
+       
         #setting stop button
         Stop_BT=tk.Button(root)
         Stop_BT["bg"] = "#cc0000"
@@ -158,7 +158,7 @@ class GUI:
         Init_BT["text"] = "Init"
         Init_BT["command"] = self.Init_BT_command
         Init_BT.place(x=520,y=90,width=75,height=40)
-        
+       
         #setting stop button
         Final_BT=tk.Button(root)
         Final_BT["bg"] = "#999999"
@@ -190,7 +190,7 @@ class GUI:
         self.Name_txtBox["text"] = "Name"
         self.Name_txtBox.place(x=520,y=190,width=170,height=25)
 
-    # Status Panel 
+    # Status Panel
         #setting LED Control Panel title label
         Status_title=tk.Label(root)
         Status_title["bg"] = "#000000"
@@ -202,7 +202,7 @@ class GUI:
         Status_title["relief"] = "raised"
         Status_title.place(x=515,y=235,width=180,height=30)
 
-        #setting status txt label 
+        #setting status txt label
         Status_txtLbl=tk.Label(root)
         Status_txtLbl['font'] = ft
         Status_txtLbl["fg"] = "#000000"
@@ -230,7 +230,7 @@ class GUI:
         self.done_mssg["justify"] = "right"
         self.done_mssg["text"] = "Terminado"
 
-    #  Data Display 
+    #  Data Display
         #setting Data Plot title label
         Plot_title=tk.Label(root)
         Plot_title["bg"] = "#000000"
@@ -241,11 +241,11 @@ class GUI:
         Plot_title["text"] = "ECG Data"
         Plot_title["relief"] = "raised"
         Plot_title.place(x=0,y=0,width=500,height=30)
-        
+       
         # plt.ion()
         # self.figure,self.ax = plt.subplots()
         # plt.axis('off')
-        
+       
 
         ## Plot configurations
         plt.style.use("ggplot")
@@ -265,8 +265,8 @@ class GUI:
         toolbar = NavigationToolbar2Tk(plot_canvas, root)
         toolbar.place(x=0,y=535,width=500,height=30)
         toolbar.update()
-    
-    #  Data Analisis 
+   
+    #  Data Analisis
         #setting Statistics Panel title label
         DataAnalisis_title=tk.Label(root)
         DataAnalisis_title["bg"] = "#000000"
@@ -288,15 +288,16 @@ class GUI:
         HeartRate_txtLbl["textvariable"] = self.HeartRate
         HeartRate_txtLbl.place(x=520,y=375,width=170,height=25)
         self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
+        
         # HRV Ratio Label
-        RatioHRV_txtLbl=tk.Label(root)
-        RatioHRV_txtLbl['font'] = ft
-        RatioHRV_txtLbl["fg"] = "#000000"
-        RatioHRV_txtLbl["justify"] = "left"
-        RatioHRV_txtLbl["anchor"] = "w"
-        RatioHRV_txtLbl["textvariable"] = self.HRV_ratio
-        RatioHRV_txtLbl.place(x=520,y=410,width=170,height=25)
-        self.HRV_ratio.set('Ratio HRV (HF/LF): ' + str(self.HF_LF.get()))
+        # RatioHRV_txtLbl=tk.Label(root)
+        # RatioHRV_txtLbl['font'] = ft
+        # RatioHRV_txtLbl["fg"] = "#000000"
+        # RatioHRV_txtLbl["justify"] = "left"
+        # RatioHRV_txtLbl["anchor"] = "w"
+        # RatioHRV_txtLbl["textvariable"] = self.HRV_ratio
+        # RatioHRV_txtLbl.place(x=520,y=410,width=170,height=25)
+        # self.HRV_ratio.set('Ratio HRV (HF/LF): ' + str(self.HF_LF.get()))
 
     #  Data Save Panel  
         #setting Statistics Panel title label
@@ -308,7 +309,7 @@ class GUI:
         DataSave_title["justify"] = "center"
         DataSave_title["text"] = "Funciones de guardado"
         DataSave_title["relief"] = "raised"
-        DataSave_title.place(x=515,y=445,width=180,height=30)
+        DataSave_title.place(x=515,y=410,width=180,height=30)
 
         #setting export HRV button
         Export_HRV_BT=tk.Button(root)
@@ -318,8 +319,8 @@ class GUI:
         Export_HRV_BT["justify"] = "center"
         Export_HRV_BT["text"] = "Exportar Analisis HRV"
         Export_HRV_BT["command"] = self.ExportHRV_BT_command
-        Export_HRV_BT.place(x=520,y=485,width=170,height=25)
-        
+        Export_HRV_BT.place(x=520,y=445,width=170,height=25)
+       
         #setting save button
         Save_BT=tk.Button(root)
         Save_BT["bg"] = "#999999"
@@ -328,9 +329,9 @@ class GUI:
         Save_BT["justify"] = "center"
         Save_BT["text"] = "Guardar ECG"
         Save_BT["command"] = self.Save_BT_command
-        Save_BT.place(x=520,y=520,width=170,height=25)
+        Save_BT.place(x=520,y=480,width=170,height=25)
 
-    # OSC Settings Panel 
+    # OSC Settings Panel
         #setting parameter title label
         CommSettings_title=tk.Label(root)
         CommSettings_title["bg"] = "#000000"
@@ -340,17 +341,17 @@ class GUI:
         CommSettings_title["justify"] = "center"
         CommSettings_title["text"] = "Ajustes OSC"
         CommSettings_title["relief"] = "raised"
-        CommSettings_title.place(x=515,y=565,width=180,height=30)
-        
+        CommSettings_title.place(x=515,y=525,width=180,height=30)
+       
 
-        #setting width parameter txt label and box
+        #setting IP parameter txt label and box
         #Lable
         IP_txtLbl=tk.Label(root)
         IP_txtLbl['font'] = ft
         IP_txtLbl["fg"] = "#000000"
         IP_txtLbl["justify"] = "center"
         IP_txtLbl["text"] = "Dirección IP:"
-        IP_txtLbl.place(x=520,y=602,width=75,height=25)
+        IP_txtLbl.place(x=520,y=545,width=75,height=25)
         #Box
         self.IP_txtBox=tk.Entry(root)
         self.IP_txtBox["borderwidth"] = "1px"
@@ -358,8 +359,18 @@ class GUI:
         self.IP_txtBox["fg"] = "#333333"
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
-        self.IP_txtBox.place(x=610,y=602,width=75,height=25)
-
+        self.IP_txtBox.place(x=610,y=545,width=75,height=25)
+       
+        #OSC Connect Button
+        OSC_Connect_BT = tk.Button(root)
+        OSC_Connect_BT["bg"] = "#999999"
+        OSC_Connect_BT["font"] = ft
+        OSC_Connect_BT["fg"] = "#000000"
+        OSC_Connect_BT["justify"] = "center"
+        OSC_Connect_BT["text"] = "Conectar OSC"
+        OSC_Connect_BT["command"] = self.OSC_Connect_BT_command
+        OSC_Connect_BT.place(x=520,y=580,width=170,height=25)
+       
     # BLE Settings Panel
         #setting BLE Settings title label
         BLE_Settings_title=tk.Label(root)
@@ -451,18 +462,18 @@ class GUI:
             self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1))
             self.done_mssg.place(x=600,y=300,width=75,height=25)    
-        else: 
+        else:
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
     def Final_BT_command(self):
         if self.experience_done and (not self.final_done):
-            self.cue = 0 
+            self.cue = 0
             self.start_status = 0
             self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1))
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó')
-        else: 
+        else:
             self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
 
     def Save_BT_command(self):
@@ -475,7 +486,7 @@ class GUI:
         print('Plot data')
 
     def ExportHRV_BT_command(self):
-        try: 
+        try:
             dir_name = self.Name_txtBox.get()
             exprt_pth = os.path.join(self.export_path,dir_name)
             os.mkdir(exprt_pth)
@@ -506,12 +517,16 @@ class GUI:
             pass
         elif self.battery_level >= 60:
             self.Battery_Percentage_txtLbl['fg'] = "#30cc00"
-        elif self.battery_level <= 20: 
+        elif self.battery_level <= 20:
             self.Battery_Percentage_txtLbl['fg'] = "#cc0000"
         else:
             self.Battery_Percentage_txtLbl['fg'] = "orange"
         self.battery_percentage.set("{0}%".format(self.battery_level))
         self.Battery_Percentage_txtLbl.place(x=455,y=610,width=50,height=25)
+       
+    def OSC_Connect_BT_command(self):
+        self.osc_utils = OSC_CommUtils(ip=self.IP_txtBox.get())
+        print(" OSC connected to ip{0}".format(self.IP_txtBox.get()))
         
         
 # --------------- Helper functions ------------------
