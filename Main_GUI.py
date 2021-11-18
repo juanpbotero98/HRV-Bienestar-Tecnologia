@@ -56,7 +56,7 @@ class GUI:
         self.ecg_session_data = []
         self.ecg_session_time = []
         self.general_ecg = [[],[],[],[],[],[]] # Data container for ECG data [Init , olfative, sound, video, interactive, Final]
-
+        self.cue = 1
     # BLE Variables
         # MAC Addres of the device to connect
         self.selected_MAC = ''
