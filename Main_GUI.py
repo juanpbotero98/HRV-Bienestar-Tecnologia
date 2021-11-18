@@ -108,9 +108,9 @@ class GUI:
         self.canvas.create_rectangle(515,30,695,140,fill = '#ededed') # Control panel separation
         self.canvas.create_rectangle(515,150,695,225,fill = '#ededed') # Communication Settings separation
         self.canvas.create_rectangle(515,235,695,325,fill = '#ededed') # Status panel separation
-        self.canvas.create_rectangle(515,335,695,405,fill = '#ededed') # Data Analisis separation
-        self.canvas.create_rectangle(515,445,695,530,fill = '#ededed') # Data Analisis separation  
-        self.canvas.create_rectangle(515,565,695,638,fill = '#ededed') # Data Analisis separation
+        self.canvas.create_rectangle(515,335,695,390,fill = '#ededed') # Data Analisis separation
+        self.canvas.create_rectangle(515,400,695,510,fill = '#ededed') # Data Analisis separation  
+        self.canvas.create_rectangle(515,520,695,630,fill = '#ededed') # Data Analisis separation
 
        
         self.canvas.pack(fill= 'both', expand=1)
@@ -286,7 +286,7 @@ class GUI:
         HeartRate_txtLbl["justify"] = "left"
         HeartRate_txtLbl["anchor"] = "w"
         HeartRate_txtLbl["textvariable"] = self.HeartRate
-        HeartRate_txtLbl.place(x=520,y=375,width=170,height=25)
+        HeartRate_txtLbl.place(x=520,y=365,width=170,height=25)
         self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
         
         # HRV Ratio Label
@@ -309,7 +309,7 @@ class GUI:
         DataSave_title["justify"] = "center"
         DataSave_title["text"] = "Funciones de guardado"
         DataSave_title["relief"] = "raised"
-        DataSave_title.place(x=515,y=420,width=180,height=30)
+        DataSave_title.place(x=515,y=400,width=180,height=30)
 
         #setting export HRV button
         Export_HRV_BT=tk.Button(root)
@@ -319,7 +319,7 @@ class GUI:
         Export_HRV_BT["justify"] = "center"
         Export_HRV_BT["text"] = "Exportar Analisis HRV"
         Export_HRV_BT["command"] = self.ExportHRV_BT_command
-        Export_HRV_BT.place(x=520,y=460,width=170,height=25)
+        Export_HRV_BT.place(x=520,y=440,width=170,height=25)
        
         #setting save button
         Save_BT=tk.Button(root)
@@ -329,7 +329,7 @@ class GUI:
         Save_BT["justify"] = "center"
         Save_BT["text"] = "Guardar ECG"
         Save_BT["command"] = self.Save_BT_command
-        Save_BT.place(x=520,y=495,width=170,height=25)
+        Save_BT.place(x=520,y=475,width=170,height=25)
 
     # OSC Settings Panel
         #setting parameter title label
@@ -341,7 +341,7 @@ class GUI:
         CommSettings_title["justify"] = "center"
         CommSettings_title["text"] = "Ajustes OSC"
         CommSettings_title["relief"] = "raised"
-        CommSettings_title.place(x=515,y=540,width=180,height=30)
+        CommSettings_title.place(x=515,y=520,width=180,height=30)
        
 
         #setting IP parameter txt label and box
@@ -351,7 +351,7 @@ class GUI:
         IP_txtLbl["fg"] = "#000000"
         IP_txtLbl["justify"] = "center"
         IP_txtLbl["text"] = "Dirección IP:"
-        IP_txtLbl.place(x=520,y=580,width=75,height=25)
+        IP_txtLbl.place(x=520,y=560,width=75,height=25)
         #Box
         self.IP_txtBox=tk.Entry(root)
         self.IP_txtBox["borderwidth"] = "1px"
@@ -359,7 +359,7 @@ class GUI:
         self.IP_txtBox["fg"] = "#333333"
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
-        self.IP_txtBox.place(x=610,y=580, width=75,height=25)
+        self.IP_txtBox.place(x=610,y=560, width=75,height=25)
        
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
@@ -369,7 +369,7 @@ class GUI:
         OSC_Connect_BT["justify"] = "center"
         OSC_Connect_BT["text"] = "Conectar OSC"
         OSC_Connect_BT["command"] = self.OSC_Connect_BT_command
-        OSC_Connect_BT.place(x=520,y=610,width=170,height=25)
+        OSC_Connect_BT.place(x=520,y=595,width=170,height=25)
        
     # BLE Settings Panel
         #setting BLE Settings title label
