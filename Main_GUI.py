@@ -437,7 +437,7 @@ class GUI:
         if self.baseline_done:
             print('start')
             self.start_status = 1
-            asyncio.run(self.main_acquisition(loop = 4))
+            asyncio.run(self.main_acquisition(loop = 4,transmit=True))
             self.experience_done = True
         else:
             self.gui_utils.error_popup('No se ha realizado la medición baseline')
@@ -450,27 +450,27 @@ class GUI:
 
     def Init_BT_command(self):
         if not self.baseline_done:
-            self.cue = 0 # Cue variable that controls the experience flow
-            self.start_status = 0 # Start variable that controls the experience start/stop
+            # self.cue = 0 # Cue variable that controls the experience flow
+            # self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
-            asyncio.run(self.main_acquisition(loop = 1))
+            asyncio.run(self.main_acquisition(loop = 1,transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)
         elif self.baseline_done and self.final_done:
             self.restart_vars()
-            self.cue = 0 # Cue variable that controls the experience flow
-            self.start_status = 0 # Start variable that controls the experience start/stop
+            # self.cue = 0 # Cue variable that controls the experience flow
+            # self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
-            asyncio.run(self.main_acquisition(loop = 1))
+            asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)    
         else:
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
     def Final_BT_command(self):
         if self.experience_done and (not self.final_done):
-            self.cue = 0
-            self.start_status = 0
+            # self.cue = 0
+            # self.start_status = 0
             self.measurement_status.set('Estado:        Final')
-            asyncio.run(self.main_acquisition(loop = 1))
+            asyncio.run(self.main_acquisition(loop = 1, trasmit = False))
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó')
         else:
@@ -531,7 +531,7 @@ class GUI:
         
 # --------------- Helper functions ------------------
     # Acquisition Loop
-    async def main_acquisition(self,loop):
+    async def main_acquisition(self,loop,transmit):
         try:
             async with BleakClient(self.selected_MAC) as client:
                 print(f"Connected: {client.is_connected}")
@@ -584,14 +584,19 @@ class GUI:
                                 started_flag =True
                                 # print('entered if')
                         
-                        if len(self.ecg_session_data)>0 and started_flag:
+                        elif len(self.ecg_session_data)>0 and started_flag:
                             plt.autoscale(enable=True, axis="y", tight=True)
                             self.ax.plot(self.ecg_session_data,color="r")
                             self.fig.canvas.draw()
                             self.fig.canvas.flush_events()
                             self.ax.set_xlim(left=n - 130, right=n)
                             n = n + 130
-                            self.osc_utils.transmit(self.start_status,80,self.cue)
+                            if transmit:
+                                self.osc_utils.transmit(self.start_status,80,self.cue)
+                        
+                        elif transmit:
+                            self.osc_utils.transmit(0,80,0)
+
                     if not self.baseline_done:
                         self.general_ecg[i] = [self.ecg_session_data,self.ecg_session_time]
                         self.baseline_done = True
