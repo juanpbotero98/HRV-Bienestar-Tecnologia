@@ -23,7 +23,8 @@ class OSC_CommUtils:
     def transmit(self,start_status,heart_rate,cue):
         self.client.send_message("/Start", start_status)
         self.client.send_message("/HR", heart_rate)
-        self.client.send_message("/Cue", cue)     
+        self.client.send_message("/Cue", cue)
+        # print(" {}, {}, {}".format(start_status,cue,heart_rate))     
 
 # -------------------- HRV Utils -----------------------
 class HRV_Utils:

@@ -439,6 +439,9 @@ class GUI:
             self.start_status = 1
             asyncio.run(self.main_acquisition(loop = 4,transmit=True))
             self.experience_done = True
+            final_time = time.time()
+            while time.time() - final_time < 30:
+                self.osc_utils.transmit(1,80,5)
         else:
             self.gui_utils.error_popup('No se ha realizado la medición baseline')
 
@@ -450,15 +453,15 @@ class GUI:
 
     def Init_BT_command(self):
         if not self.baseline_done:
-            # self.cue = 0 # Cue variable that controls the experience flow
-            # self.start_status = 0 # Start variable that controls the experience start/stop
+            self.cue = 0 # Cue variable that controls the experience flow
+            self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1,transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)
         elif self.baseline_done and self.final_done:
             self.restart_vars()
-            # self.cue = 0 # Cue variable that controls the experience flow
-            # self.start_status = 0 # Start variable that controls the experience start/stop
+            self.cue = 0 # Cue variable that controls the experience flow
+            self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)    
@@ -467,8 +470,8 @@ class GUI:
 
     def Final_BT_command(self):
         if self.experience_done and (not self.final_done):
-            # self.cue = 0
-            # self.start_status = 0
+            self.cue = 0
+            self.start_status = 0
             self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1, trasmit = False))
         elif self.final_done:
@@ -526,7 +529,7 @@ class GUI:
        
     def OSC_Connect_BT_command(self):
         self.osc_utils = OSC_CommUtils(ip=self.IP_txtBox.get())
-        print(" OSC connected to ip{0}".format(self.IP_txtBox.get()))
+        print(" OSC connected to ip: {0}".format(self.IP_txtBox.get()))
         
         
 # --------------- Helper functions ------------------
@@ -572,19 +575,19 @@ class GUI:
                     if loop > 1:
                         self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
-                    while time.time()-init_time<40:
+                    while time.time()-init_time<240:
                         print(time.time()-init_time)
                         ## Collecting ECG data for 1 second
                         await asyncio.sleep(1)
                         # print(len(ecg_session_data),len(ecg_session_time))
 
-                        if len(self.ecg_session_data)>0 :
+                        if len(self.ecg_session_data)>0:
                             if not started_flag:
                                 init_time = time.time()
                                 started_flag =True
                                 # print('entered if')
                         
-                        elif len(self.ecg_session_data)>0 and started_flag:
+                        if started_flag:
                             plt.autoscale(enable=True, axis="y", tight=True)
                             self.ax.plot(self.ecg_session_data,color="r")
                             self.fig.canvas.draw()
@@ -594,7 +597,7 @@ class GUI:
                             if transmit:
                                 self.osc_utils.transmit(self.start_status,80,self.cue)
                         
-                        elif transmit:
+                        else:
                             self.osc_utils.transmit(0,80,0)
 
                     if not self.baseline_done:
@@ -608,6 +611,9 @@ class GUI:
                     else: 
                         self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
                         self.final_done = True
+                    
+                    # Debugging 
+                    # print(len(self.ecg_session_data))
                     self.cue += 1
                     # Restart figure
                     self.ax.cla()
