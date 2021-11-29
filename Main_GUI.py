@@ -482,6 +482,7 @@ class GUI:
     def Save_BT_command(self):
         file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
         # TODO: Manage ecg file save system.
+        self.hrv_utils.Save_ECG(file, self.general_ecg,self.final_done)
         self.ecg_saved = True
         print('Save')
 
