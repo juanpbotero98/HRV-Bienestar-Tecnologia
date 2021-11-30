@@ -477,14 +477,15 @@ class GUI:
             asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.final_done = True
         elif self.final_done:
-            self.gui_utils.error_popup('La medicion final ya se realizó')
+            self.gui_utils.error_popup('La medicion final ya se realizó, si no intente de nuevo')
+            self.final_done = False
         else:
             self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
 
     def Save_BT_command(self):
-        file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
+        # file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
         # TODO: Manage ecg file save system.
-        self.hrv_utils.Save_ECG(file, self.general_ecg,self.final_done,self.export_path)
+        self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
         self.ecg_saved = True
         print('Save')
 
@@ -494,11 +495,11 @@ class GUI:
     def ExportHRV_BT_command(self):
         try:
             dir_name = self.Name_txtBox.get()
-            exprt_pth = os.path.join(self.export_path,dir_name)
-            os.mkdir(exprt_pth)
+            self.full_export_path = os.path.join(self.export_path,dir_name)
+            os.mkdir(self.full_export_path)
             fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
             for i in range(len(fnames)):
-                self.hrv_utils.Export_HRV(fnames[i],os.path.join(exprt_pth,""),self.general_ecg[i][0])
+                self.hrv_utils.Export_HRV(fnames[i],os.path.join(self.full_export_path,""),self.general_ecg[i][0])
             self.hrv_exported = True
         except:
             self.gui_utils.error_popup('No se ha ingresado el nombre del sujeto o el folder ya existe')
@@ -578,7 +579,7 @@ class GUI:
                     if loop > 1:
                         self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
-                    while time.time()-init_time<240:
+                    while time.time()-init_time<35:
                         print(time.time()-init_time)
                         ## Collecting ECG data for 1 second
                         await asyncio.sleep(1)
@@ -672,6 +673,16 @@ class GUI:
             # Restart flags
             self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
             self.hrv_exported, self.ecg_saved = False, False
+            # Destroy the done label and re-define the progressbar widget and labels
+            self.done_mssg.destroy()
+            #Widget
+            self.measurement_pb = Progressbar(self.root, orient='horizontal', length=100, mode='indeterminate',maximum = 35)
+            #Done message
+            self.done_mssg=tk.Label(self.root)
+            self.done_mssg['font'] = self.ft
+            self.done_mssg["fg"] = "#30cc00"
+            self.done_mssg["justify"] = "right"
+            self.done_mssg["text"] = "Terminado"
         else:
             self.gui_utils.error_popup('Guarde primero la medición anterior antes de iniciar una nueva')
 

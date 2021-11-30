@@ -14,6 +14,7 @@ from bleak import BleakScanner
 from bleak.uuids import uuid16_dict
 import biosppy
 import csv 
+import os
 
 # ------------- OSC Communication Utils ----------------
 class OSC_CommUtils:
@@ -45,35 +46,48 @@ class HRV_Utils:
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
     
-    def Save_ECG(file,ecg,finnished,export_path):
-        # fnames = ['ECG raw', 'ECG Filtrado','Tiempo (s)', 'Ritmo Cardiaco', 'Picos R-R', 'IBI Serie']
+    def Save_ECG(ecg,finnished,export_path):
+        row_names = ['ECG raw', 'ECG Filtrado','Tiempo (s)', 'Ritmo Cardiaco', 'Picos R-R', 'IBI Serie']
+        fnames = ['ECG_baseline','ECG_olfative','ECG_sound','ECG_video','ECG_interactive','ECG_final']
         # writer = csv.DictWriter(file,fieldnames=fnames)
         # writer.writeheader()
-        writer = csv.writer(file)
         for i in range(len(ecg)):
-            loaded_ecg= biosppy.signals.ecg.ecg(ecg[i],sampling_rate=130,path=export_path)
+            file_path = os.path.join(export_path,fnames[i]+'.csv')
+            image_path = os.path.join(export_path,fnames[i])
+            with open(file_path,mode='w') as file:
+                writer = csv.writer(file)
+                loaded_ecg= biosppy.signals.ecg.ecg(ecg[i][0],sampling_rate=130,path=image_path)
+                plt.close('all')    
+                # Get Heart Rate data
+                HR_data = loaded_ecg[5].tolist()
+                HR_data.insert(0,'Heart Rate')
+
+                # Get time axis
+                time_ref =  loaded_ecg[0].tolist()
+                time_ref.insert(0,'Time (s)')
+
+                # Get filtered ECG
+                filtered_ecg = loaded_ecg[1].tolist()
+                filtered_ecg.insert(0,'ECG')
+
+                # Get R-peaks series using biosppy
+                rpeaks = loaded_ecg[2]
                 
-            # Get Heart Rate data
-            HR_data = loaded_ecg [5]
+                # Compute NNI series
+                nni = tools.nn_intervals(rpeaks).tolist()
+                rpeaks = rpeaks.tolist()
+                rpeaks.insert(0,'Rpeaks')
+                
+                
+                
+                nni.insert(0,'IBI Series')
 
-            # Get time axis
-            time_ref =  loaded_ecg [0]
-
-            # Get filtered ECG
-            filtered_ecg = loaded_ecg [1]
-
-            # Get R-peaks series using biosppy
-            rpeaks = loaded_ecg[2]
-            
-            # Compute NNI series
-            nni = tools.nn_intervals(rpeaks)
-
-            # Write file 
-            writer.writerow(filtered_ecg)
-            writer.writerow(time_ref)
-            writer.writerow(rpeaks)
-            writer.writerow(nni)
-            writer.writerow(HR_data)
+                # Write file 
+                writer.writerow(filtered_ecg)
+                writer.writerow(time_ref)
+                writer.writerow(rpeaks)
+                writer.writerow(nni)
+                writer.writerow(HR_data)
         # Save all data 
 
 # -------------------- GUI Utils -----------------------
@@ -98,7 +112,7 @@ class GUI_Utils:
     #setting title label
         Params_title=tk.Label(self.window)
         Params_title["bg"] = "#000000"
-        ft = tkFont.Font(family='Times',size=10)
+        ft = tkFont.Font(family='Times.csv',size=10)
         Params_title["font"] = ft
         Params_title["fg"] = "#fbfbfb"
         Params_title["justify"] = "center"
