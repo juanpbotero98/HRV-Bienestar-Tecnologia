@@ -74,10 +74,6 @@ class HRV_Utils:
             writer.writerow(rpeaks)
             writer.writerow(nni)
             writer.writerow(HR_data)
-
-            
-
-
         # Save all data 
 
 # -------------------- GUI Utils -----------------------
