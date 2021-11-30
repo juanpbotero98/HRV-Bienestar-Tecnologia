@@ -24,8 +24,8 @@ from bleak.uuids import uuid16_dict
 ####################################################################################################################################
 ###############   TODO list:                                                                                         ############### 
 ###############            * Add save raw data function to utils class                                               ###############
-###############            * Add BLE scan button                                                                     ###############
-###############            * Add BLE connect button                                                                  ###############
+###############   BUG list:                                                                                          ###############
+###############            * Support for various mesurements is failing                                              ###############
 ####################################################################################################################################
 
 # GUI class
@@ -360,6 +360,7 @@ class GUI:
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
         self.IP_txtBox.place(x=610,y=560, width=75,height=25)
+        self.IP_txtBox.insert(0,"157.253.26.20")
        
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
@@ -473,7 +474,8 @@ class GUI:
             self.cue = 0
             self.start_status = 0
             self.measurement_status.set('Estado:        Final')
-            asyncio.run(self.main_acquisition(loop = 1, trasmit = False))
+            asyncio.run(self.main_acquisition(loop = 1, transmit = False))
+            self.final_done = True
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó')
         else:
@@ -610,7 +612,7 @@ class GUI:
                     
                     else: 
                         self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
-                        self.final_done = True
+                        
                     
                     # Debugging 
                     # print(len(self.ecg_session_data))
