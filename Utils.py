@@ -12,6 +12,8 @@ from tkinter import ttk
 import asyncio
 from bleak import BleakScanner
 from bleak.uuids import uuid16_dict
+import biosppy
+import csv 
 
 # ------------- OSC Communication Utils ----------------
 class OSC_CommUtils:
@@ -42,6 +44,41 @@ class HRV_Utils:
         results = pyhrv.hrv(signal=ecg,sampling_rate=130,plot_ecg=False, plot_tachogram=False, show=False)
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
+    
+    def Save_ECG(file,ecg,finnished,export_path):
+        # fnames = ['ECG raw', 'ECG Filtrado','Tiempo (s)', 'Ritmo Cardiaco', 'Picos R-R', 'IBI Serie']
+        # writer = csv.DictWriter(file,fieldnames=fnames)
+        # writer.writeheader()
+        writer = csv.writer(file)
+        for i in range(len(ecg)):
+            loaded_ecg= biosppy.signals.ecg.ecg(ecg[i],sampling_rate=130,path=export_path)
+                
+            # Get Heart Rate data
+            HR_data = loaded_ecg [5]
+
+            # Get time axis
+            time_ref =  loaded_ecg [0]
+
+            # Get filtered ECG
+            filtered_ecg = loaded_ecg [1]
+
+            # Get R-peaks series using biosppy
+            rpeaks = loaded_ecg[2]
+            
+            # Compute NNI series
+            nni = tools.nn_intervals(rpeaks)
+
+            # Write file 
+            writer.writerow(filtered_ecg)
+            writer.writerow(time_ref)
+            writer.writerow(rpeaks)
+            writer.writerow(nni)
+            writer.writerow(HR_data)
+
+            
+
+
+        # Save all data 
 
 # -------------------- GUI Utils -----------------------
 class GUI_Utils:
