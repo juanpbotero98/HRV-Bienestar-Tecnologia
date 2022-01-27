@@ -360,8 +360,8 @@ class GUI:
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
         self.IP_txtBox.place(x=610,y=560, width=75,height=25)
-        self.IP_txtBox.insert(0,"157.253.26.20")
-       
+        # self.IP_txtBox.insert(0,"157.253.26.20") 
+        self.IP_txtBox.insert(0,"192.168.0.4")
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
         OSC_Connect_BT["bg"] = "#999999"
@@ -579,11 +579,11 @@ class GUI:
                     if loop > 1:
                         self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
-                    while time.time()-init_time<35:
+                    while time.time()-init_time<40:
                         print(time.time()-init_time)
                         ## Collecting ECG data for 1 second
                         await asyncio.sleep(1)
-                        # print(len(ecg_session_data),len(ecg_session_time))
+                        # print(len(self.ecg_session_data),len(self.ecg_session_time))
 
                         if len(self.ecg_session_data)>0:
                             if not started_flag:
