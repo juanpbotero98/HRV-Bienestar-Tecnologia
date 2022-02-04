@@ -360,8 +360,8 @@ class GUI:
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
         self.IP_txtBox.place(x=610,y=560, width=75,height=25)
-        # self.IP_txtBox.insert(0,"157.253.26.20") 
-        self.IP_txtBox.insert(0,"192.168.0.4")
+        self.IP_txtBox.insert(0,"157.253.26.20")
+       
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
         OSC_Connect_BT["bg"] = "#999999"
@@ -440,6 +440,15 @@ class GUI:
             self.start_status = 1
             asyncio.run(self.main_acquisition(loop = 4,transmit=True))
             self.experience_done = True
+            print(len(self.general_ecg[0]))
+            print(len(self.general_ecg[1]))
+            print(len(self.general_ecg[2]))
+            print(len(self.general_ecg[3]))
+            print(len(self.general_ecg[4]))
+            
+            if len(self.general_ecg[1]) == 0:
+                self.experience_done = False
+
             final_time = time.time()
             while time.time() - final_time < 30:
                 self.osc_utils.transmit(1,80,5)
@@ -460,6 +469,7 @@ class GUI:
             asyncio.run(self.main_acquisition(loop = 1,transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)
         elif self.baseline_done and self.final_done:
+            print("Empezó una nueva medición y se reiniciaron las variables")
             self.restart_vars()
             self.cue = 0 # Cue variable that controls the experience flow
             self.start_status = 0 # Start variable that controls the experience start/stop
@@ -476,6 +486,12 @@ class GUI:
             self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.final_done = True
+            print(len(self.general_ecg[0]))
+            print(len(self.general_ecg[1]))
+            print(len(self.general_ecg[2]))
+            print(len(self.general_ecg[3]))
+            print(len(self.general_ecg[4]))
+            
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó, si no intente de nuevo')
             self.final_done = False
@@ -579,11 +595,11 @@ class GUI:
                     if loop > 1:
                         self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
-                    while time.time()-init_time<40:
+                    while time.time()-init_time<240:
                         print(time.time()-init_time)
                         ## Collecting ECG data for 1 second
                         await asyncio.sleep(1)
-                        # print(len(self.ecg_session_data),len(self.ecg_session_time))
+                        # print(len(ecg_session_data),len(ecg_session_time))
 
                         if len(self.ecg_session_data)>0:
                             if not started_flag:
@@ -605,20 +621,23 @@ class GUI:
                             self.osc_utils.transmit(0,80,0)
 
                     if not self.baseline_done:
+                        print("Saved ecg baseline in variable")
                         self.general_ecg[i] = [self.ecg_session_data,self.ecg_session_time]
                         self.baseline_done = True
 
                     elif not self.experience_done:
+                        print("saved ecg experience {} in variable".format(i))
                         self.general_ecg[i+1] = [self.ecg_session_data,self.ecg_session_time]
                         # self.experience_done = True
                     
                     else: 
+                        print("Saved ecg final in variable")
                         self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
                         
                     
                     # Debugging 
                     # print(len(self.ecg_session_data))
-                    self.cue += 1
+                    self.cue += 1 #BUG: Puede ser la razón por la cual se salta cuando hay un error en loop principal
                     # Restart figure
                     self.ax.cla()
                 # Stop progressbar
@@ -629,6 +648,7 @@ class GUI:
                 # await client.stop_notify(self.ble_utils.PMD_DATA)
         except: 
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
+
     
     # Bit conversion of the Hexadecimal stream
     def data_conv(self, sender, data):

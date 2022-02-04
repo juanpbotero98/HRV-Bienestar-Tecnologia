@@ -42,7 +42,13 @@ class HRV_Utils:
         tools.radar_chart(nni = init_nni, comparison_nni=final_nni, parameters=params)
 
     def Export_HRV(fname,export_path,ecg):
-        results = pyhrv.hrv(signal=ecg,sampling_rate=130,plot_ecg=False, plot_tachogram=False, show=False)
+        loaded_ecg= biosppy.signals.ecg.ecg(ecg,sampling_rate=130,show = False)
+        plt.close('all') 
+        IBI = []
+        for i in range(len(loaded_ecg[2])-1):
+            IBI.append(loaded_ecg[0][loaded_ecg[2][i+1]]-loaded_ecg[0][loaded_ecg[2][i]])
+
+        results = pyhrv.hrv(nni=IBI,plot_ecg=False, plot_tachogram=False, show=False)
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
     
