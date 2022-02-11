@@ -171,3 +171,90 @@ class BLE_Utils:
             print(d)
         return devices
     
+class OperationModes_Popup():
+
+    def __init__(self, master):
+        self.master = master
+
+    def popup(self):
+        self.window = tk.Toplevel(self.master)
+        self.window.title("Modos de Operación")
+        self.finished_flag = False
+
+    #setting window size
+        window_width=180
+        window_height=150
+        screenwidth = self.master.winfo_screenwidth()
+        screenheight = self.master.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (window_width, window_height, ((screenwidth - window_width) / 2)+400, 
+                                    (screenheight - window_height) / 2)
+        self.window.geometry(alignstr)
+        self.window.resizable(width=False, height=False)
+
+    #setting title label
+        OpModes_title=tk.Label(self.window)
+        OpModes_title["bg"] = "#000000"
+        ft = tkFont.Font(family='Times',size=10)
+        OpModes_title["font"] = ft
+        OpModes_title["fg"] = "#fbfbfb"
+        OpModes_title["justify"] = "center"
+        OpModes_title["text"] = "Modos de Operación"
+        OpModes_title["relief"] = "raised"
+        OpModes_title.place(x=0,y=0,width=180,height=30)
+
+    #setting Control Group OP Mode check box
+        self.ControlGroup = tk.BooleanVar()
+        self.ControlGroup_chkBox = tk.Checkbutton(self.window)
+        self.ControlGroup_chkBox["justify"] = "left"
+        self.ControlGroup_chkBox["anchor"] = "w"
+        self.ControlGroup_chkBox["text"] = 'Grupo Control'
+        self.ControlGroup_chkBox["variable"] = self.ControlGroup
+        self.ControlGroup_chkBox["onvalue"] = True
+        self.ControlGroup_chkBox["offvalue"] = False
+        self.ControlGroup_chkBox.place(x=0,y=40,width=170,height = 25)
+
+    #setting test mode check box
+        self.TestMode = tk.BooleanVar()
+        self.TestMode_chkBox = tk.Checkbutton(self.window)
+        self.TestMode_chkBox["justify"] = "left"
+        self.TestMode_chkBox["anchor"] = "w"
+        self.TestMode_chkBox["text"] = 'Test'
+        self.TestMode_chkBox["variable"] = self.TestMode
+        self.TestMode_chkBox["onvalue"] = True
+        self.TestMode_chkBox["offvalue"] = False
+        self.TestMode_chkBox.place(x=0,y=80,width=60,height = 25)
+
+    #setting test mode txt label and box
+        #Lable
+        self.test_time_txtLbl=tk.Label(self.window)
+        self.test_time_txtLbl['font'] = ft
+        self.test_time_txtLbl["fg"] = "#000000"
+        self.test_time_txtLbl["justify"] = "center"
+        self.test_time_txtLbl["text"] = "Duración (s):"
+        self.test_time_txtLbl.place(x=55,y=80,width=80,height=25)
+        # txt box
+        global test_time_txtBox
+        test_time_txtBox=tk.Entry(self.window)
+        test_time_txtBox["borderwidth"] = "1px"
+        test_time_txtBox["font"] = ft
+        test_time_txtBox["fg"] = "#333333"
+        test_time_txtBox["justify"] = "center"
+        test_time_txtBox["text"] = "test_time"
+        test_time_txtBox.place(x=135,y=80,width=40,height=25)
+          
+    #setting close button
+        self.button_close_BT = tk.Button(self.window)
+        self.button_close_BT["bg"] = "#999999"
+        self.button_close_BT["font"] = ft
+        self.button_close_BT["fg"] = "#000000"
+        self.button_close_BT["justify"] = "center"
+        self.button_close_BT["text"] = "Close"
+        self.button_close_BT["command"] = self.Close_BT_command
+        self.button_close_BT.place(x=0,y=115,width=180,height=30)
+   
+    def Close_BT_command(self):
+        self.test_time = int(test_time_txtBox.get())
+        self.finished_flag = True
+        self.window.destroy()
+        
+        

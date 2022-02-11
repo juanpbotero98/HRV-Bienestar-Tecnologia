@@ -18,7 +18,7 @@ import os
 import pyhrv
 import asyncio
 from bleak import BleakClient
-from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils, OperationModes_Popup
+from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils
 from bleak.uuids import uuid16_dict
 
 ####################################################################################################################################
@@ -40,13 +40,12 @@ class GUI:
         self.hrv_utils = HRV_Utils
         self.gui_utils = GUI_Utils(self.root)
         self.ble_utils = BLE_Utils
-        self.opmodes_popup = OperationModes_Popup(self.root)
 
     # Variables
         self.measurement_status, self.HRV_ratio, self.HeartRate, self.battery_percentage = tk.StringVar() , tk.StringVar(), tk.StringVar(), tk.StringVar()
         self.HF_LF, self.bpm = tk.IntVar(),tk.IntVar()
 
-        self.section_time = 240 
+        self.section_times = [240,240,240,240,240,240]  # [Init , olfative, video, sound, interactive, Final]
         self.section_names = ["Experiecia olfativa",  "Experiencia de sonido", "Experiencia de video","Experiencia interactiva"]
         self.export_path = os.path.join(os.path.abspath(os.getcwd()),"HRV_Reports")
 
@@ -87,8 +86,6 @@ class GUI:
     # Flags
         self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
         self.hrv_exported, self.ecg_saved = False, False
-        # OP Modes
-        self.OPmodes_popup,self.testmode, self.ctrl_group = False, False,False
 
     # Canvas operations
         #setting main tittle
@@ -113,7 +110,7 @@ class GUI:
         self.canvas.create_rectangle(515,235,695,325,fill = '#ededed') # Status panel separation
         self.canvas.create_rectangle(515,335,695,390,fill = '#ededed') # Data Analisis separation
         self.canvas.create_rectangle(515,400,695,510,fill = '#ededed') # Data Analisis separation  
-        self.canvas.create_rectangle(515,520,695,625,fill = '#ededed') # Data Analisis separation
+        self.canvas.create_rectangle(515,520,695,630,fill = '#ededed') # Data Analisis separation
 
        
         self.canvas.pack(fill= 'both', expand=1)
@@ -374,18 +371,7 @@ class GUI:
         OSC_Connect_BT["text"] = "Conectar OSC"
         OSC_Connect_BT["command"] = self.OSC_Connect_BT_command
         OSC_Connect_BT.place(x=520,y=595,width=170,height=25)
-
-    # Operation mode Popup button    
-        Mode_Popup_BT = tk.Button(root)
-        Mode_Popup_BT = tk.Button(root)
-        Mode_Popup_BT["bg"] = "#999999"
-        Mode_Popup_BT["font"] = ft
-        Mode_Popup_BT["fg"] = "#000000"
-        Mode_Popup_BT["justify"] = "center"
-        Mode_Popup_BT["text"] = "..."
-        Mode_Popup_BT["command"] = self.Mode_Popup_BT_command
-        Mode_Popup_BT.place(x=665,y=625,width=25,height=13)
-
+       
     # BLE Settings Panel
         #setting BLE Settings title label
         BLE_Settings_title=tk.Label(root)
@@ -449,53 +435,38 @@ class GUI:
 # -------------------- Button functions -----------------------
 
     def Start_BT_command(self):
-        self.verify_flags()
         if self.baseline_done:
             print('start')
             self.start_status = 1
-            asyncio.run(self.main_acquisition(loop = 4,transmit=True,section_time=self.section_time))
+            asyncio.run(self.main_acquisition(loop = 4,transmit=True))
             self.experience_done = True
-                     
+            print(len(self.general_ecg[0]))
+            print(len(self.general_ecg[1]))
+            print(len(self.general_ecg[2]))
+            print(len(self.general_ecg[3]))
+            print(len(self.general_ecg[4]))
+            
             if len(self.general_ecg[1]) == 0:
                 self.experience_done = False
 
             final_time = time.time()
             while time.time() - final_time < 30:
                 self.osc_utils.transmit(1,80,5)
-        
-        elif self.ctrl_group:
-            print('started control group measurement')
-            asyncio.run(self.ctrlGroup_acquisition(section_time=self.section_time))
-            self.experience_done = True
-            self.final_done = True
-
-        elif self.testmode:
-            print('running test without baseline')
-            asyncio.run()
-            
-
         else:
             self.gui_utils.error_popup('No se ha realizado la medición baseline')
 
     def Stop_BT_command(self):
-        
-        if self.ctrl_group: 
-            self.restart_vars()
-
         self.root.quit()                 # stops mainloop
         self.root.destroy()              # this is necessary on Windows to prevent
                                          # Fatal Python Error: PyEval_RestoreThread: NULL tstate
         print('Stop')
 
     def Init_BT_command(self):
-        self.verify_flags()
-        if self.ctrl_group:
-            self.gui_utils.error_popup('Error: Está en modo grupo control')
-        elif not self.baseline_done:
+        if not self.baseline_done:
             self.cue = 0 # Cue variable that controls the experience flow
             self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
-            asyncio.run(self.main_acquisition(loop = 1,transmit = False,section_time=self.section_time))
+            asyncio.run(self.main_acquisition(loop = 1,transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)
         elif self.baseline_done and self.final_done:
             print("Empezó una nueva medición y se reiniciaron las variables")
@@ -503,7 +474,7 @@ class GUI:
             self.cue = 0 # Cue variable that controls the experience flow
             self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
-            asyncio.run(self.main_acquisition(loop = 1, transmit = False,section_time=self.section_time))
+            asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.done_mssg.place(x=600,y=300,width=75,height=25)    
         else:
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
@@ -513,7 +484,7 @@ class GUI:
             self.cue = 0
             self.start_status = 0
             self.measurement_status.set('Estado:        Final')
-            asyncio.run(self.main_acquisition(loop = 1, transmit = False,section_time=self.section_time))
+            asyncio.run(self.main_acquisition(loop = 1, transmit = False))
             self.final_done = True
             print(len(self.general_ecg[0]))
             print(len(self.general_ecg[1]))
@@ -534,20 +505,15 @@ class GUI:
         self.ecg_saved = True
         print('Save')
 
+    def Plot_DataAnalisis_BT_command(self):
+        print('Plot data')
+
     def ExportHRV_BT_command(self):
         try:
-            # Export path changes depending on operation mode 
-            if self.ctrl_group:
-                self.export_path = os.path.join(self.export_path,"Grupo_Control")
-                fnames = ['Momento_1','Momento_2','Momento_3','Momento_4','Momento_5','Momento_6']
-            else: 
-                self.export_path = os.path.join(self.export_path,"Experiencia_Mindfullness")
-                fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
-            
             dir_name = self.Name_txtBox.get()
             self.full_export_path = os.path.join(self.export_path,dir_name)
             os.mkdir(self.full_export_path)
-            
+            fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
             for i in range(len(fnames)):
                 self.hrv_utils.Export_HRV(fnames[i],os.path.join(self.full_export_path,""),self.general_ecg[i][0])
             self.hrv_exported = True
@@ -562,7 +528,7 @@ class GUI:
             self.devices_names.append(device.name)
             self.devices_addresses.append(device.address)
         self.device_list_dropdown['values'] = self.devices_names
-    
+
     def Device_Select_BT_command(self):
         # Establish MAC Address and get device battery level
         index = self.devices_names.index(self.device_list_dropdown.get())
@@ -584,16 +550,11 @@ class GUI:
     def OSC_Connect_BT_command(self):
         self.osc_utils = OSC_CommUtils(ip=self.IP_txtBox.get())
         print(" OSC connected to ip: {0}".format(self.IP_txtBox.get()))
-
-    def Mode_Popup_BT_command(self):
-        self.OPmodes_popup = True
-        self.opmodes_popup.popup()
         
         
 # --------------- Helper functions ------------------
     # Acquisition Loop
-    # Acquisition Loop
-    async def main_acquisition(self,loop,transmit,section_time):
+    async def main_acquisition(self,loop,transmit):
         try:
             async with BleakClient(self.selected_MAC) as client:
                 print(f"Connected: {client.is_connected}")
@@ -604,6 +565,7 @@ class GUI:
                 att_read = await client.read_gatt_char(self.PMD_CONTROL)
                 print(att_read)
                 time.sleep(1)
+
                 await client.write_gatt_char(self.PMD_CONTROL, self.ECG_WRITE)
 
                 ## ECG stream started
@@ -634,7 +596,7 @@ class GUI:
                     if loop > 1:
                         self.measurement_status.set('Estado:    {}'.format(self.section_names[i]))
                     init_time = time.time()
-                    while time.time()-init_time<section_time:
+                    while time.time()-init_time<40:
                         print(time.time()-init_time)
                         ## Collecting ECG data for 1 second
                         await asyncio.sleep(1)
@@ -688,88 +650,8 @@ class GUI:
         except: 
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
 
-    # Control Group Acquisition Loop
-    async def ctrlGroup_acquisition(self,section_time):
-        try:
-            async with BleakClient(self.selected_MAC) as client:
-                print(f"Connected: {client.is_connected}")
-
-                # att_read = await client.read_gatt_char(self.PMD_CONTROL)
-                # print(att_read)
-
-                # Measurements Quality Check
-                # await client.start_notify(self.PMD_CONTROL, self.data_print) 
-                # WRITE = bytearray([0x01, 0x00])
-                # await client.write_gatt_char(self.PMD_CONTROL, WRITE,response=True)
-                # Start Measurement
-                time.sleep(1) 
-                await client.write_gatt_char(self.PMD_CONTROL, self.ECG_WRITE)
-                # await client.stop_notify(self.PMD_DATA)
-
-                ## ECG stream started
-                await client.start_notify(self.PMD_DATA, self.data_conv)
-                print("Collecting ECG data...")
-
-                if  self.experience_done:
-                    # Destroy the done label and re-define the progressbar widget and labels
-                    self.done_mssg.destroy()
-                    #Widget
-                    self.measurement_pb = Progressbar(self.root, orient='horizontal', length=100, mode='indeterminate',maximum = 35)
-                    #Done message
-                    self.done_mssg=tk.Label(self.root)
-                    self.done_mssg['font'] = self.ft
-                    self.done_mssg["fg"] = "#30cc00"
-                    self.done_mssg["justify"] = "right"
-                    self.done_mssg["text"] = "Terminado"
-
-                self.measurement_pb.start(interval = 1) #Start the progress bar
-                self.measurement_pb.place(x=590,y=300)
-                # Main acquisition loop
-                for i in range(6):
-                    n = 130
-                    started_flag = False
-                    self.ecg_session_data = []
-                    self.ecg_session_time = []
-                    self.measurement_status.set('Estado:    {} out of 6'.format(i+1))
-                    init_time = time.time()
-                    while time.time()-init_time<section_time:
-                        print(time.time()-init_time)
-                        ## Collecting ECG data for 1 second
-                        await asyncio.sleep(1)
-                        # print(len(self.ecg_session_data))
-
-                        if len(self.ecg_session_data)>0:
-                            if not started_flag:
-                                init_time = time.time()
-                                started_flag =True
-                                # print('entered if')
-                        
-                        # print(started_flag)
-                        if started_flag:
-                            plt.autoscale(enable=True, axis="y", tight=True)
-                            self.ax.plot(self.ecg_session_data,color="r")
-                            self.fig.canvas.draw()
-                            self.fig.canvas.flush_events()
-                            self.ax.set_xlim(left=n - 130, right=n)
-                            n = n + 130
-                    self.general_ecg[i] = [self.ecg_session_data,self.ecg_session_time]
-                    print('saved ecg {}/6 in variable'.format(i+1))
-                    # Restart figure
-                    self.ax.cla()
-                # Stop progressbar
-                self.measurement_pb.stop()
-                self.measurement_pb.destroy()
-                # Set done label
-                self.done_mssg.place(x=600,y=300,width=75,height=25)
-                await client.stop_notify(self.PMD_DATA)
-
-        except: 
-            self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
-
-    def data_print(self,sender, data):
-        print(', '.join('{:02x}'.format(x) for x in data))
-
-    # Byte conversion of the Hexadecimal stream
+    
+    # Bit conversion of the Hexadecimal stream
     def data_conv(self, sender, data):
         if data[0] == 0x00:
             timestamp = self.convert_to_unsigned_long(data, 1, 8)
@@ -825,16 +707,6 @@ class GUI:
         else:
             self.gui_utils.error_popup('Guarde primero la medición anterior antes de iniciar una nueva')
 
-    # Op Modes flag handler
-    def verify_flags(self):
-        if self.OPmodes_popup:
-            if self.opmodes_popup.finished_flag:
-                self.testmode = self.opmodes_popup.TestMode.get()
-                self.ctrl_group = self.opmodes_popup.ControlGroup.get()
-
-            if self.testmode:
-                self.section_time = self.opmodes_popup.test_time
-            
 # ------------------ Main Code ----------------------
 if __name__ == "__main__":
     os.environ["PYTHONASYNCIODEBUG"] = str(1)
