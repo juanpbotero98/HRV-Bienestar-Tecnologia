@@ -1,10 +1,12 @@
 name: bienestar-tec
 channels:
+  - anaconda
   - defaults
   - conda-forge
 dependencies:
   - blas=1.0=mkl
-  - ca-certificates=2021.9.30=haa95532_1
+  - bottleneck=1.3.2=py39h7cc1a96_1
+  - ca-certificates=2020.10.14=0
   - certifi=2021.10.8=py39haa95532_0
   - icc_rt=2019.0.0=h0cc432a_1
   - intel-openmp=2021.3.0=haa95532_3372
@@ -12,12 +14,15 @@ dependencies:
   - mkl-service=2.4.0=py39h2bbff1b_0
   - mkl_fft=1.3.0=py39h277e83a_2
   - mkl_random=1.2.2=py39hf11a4ad_0
+  - numexpr=2.7.3=py39hb80d3ca_1
   - numpy=1.21.2=py39hfca59bb_0
   - numpy-base=1.21.2=py39h0829f74_0
   - openssl=1.1.1l=h2bbff1b_0
+  - pandas=1.3.4=py39h6214cd6_0
   - pip=21.2.4=py39haa95532_0
   - python=3.9.7=h6244533_1
   - python_abi=3.9=2_cp39
+  - pytz=2020.1=py_0
   - scipy=1.7.1=py39hbe87c03_2
   - setuptools=58.0.4=py39haa95532_0
   - six=1.16.0=pyhd3eb1b0_0
@@ -29,10 +34,22 @@ dependencies:
   - wheel=0.37.0=pyhd3eb1b0_1
   - wincertstore=0.2=py39haa95532_2
   - pip:
+    - altgraph==0.17.2
+    - auto-py-to-exe==2.11.0
     - bidict==0.21.3
     - biosppy==0.7.3
+    - bleak==0.13.0
+    - bleak-winrt==1.0.1
+    - bottle==0.12.19
+    - bottle-websocket==0.2.9
+    - cffi==1.15.0
     - cycler==0.10.0
+    - eel==0.12.4
     - future==0.18.2
+    - gatspy==0.3
+    - gevent==21.8.0
+    - gevent-websocket==0.10.1
+    - greenlet==1.1.2
     - h5py==3.4.0
     - joblib==1.1.0
     - kiwisolver==1.3.2
@@ -40,12 +57,22 @@ dependencies:
     - nolds==0.5.2
     - opencv-python==4.5.3.56
     - opensignalsreader==0.2.2
+    - pefile==2021.9.3
     - pillow==8.3.2
+    - py-ecg-detectors==1.1.0
+    - pycparser==2.21
     - pyhrv==0.4.0
+    - pyinstaller==4.7
+    - pyinstaller-hooks-contrib==2021.4
     - pyparsing==2.4.7
     - python-dateutil==2.8.2
     - python-osc==1.8.0
+    - pywavelets==1.2.0
+    - pywin32-ctypes==0.2.0
     - scikit-learn==1.0
     - shortuuid==1.0.1
     - threadpoolctl==3.0.0
+    - whichcraft==0.6.1
+    - zope-event==4.5.0
+    - zope-interface==5.4.0
 prefix: C:\Users\Juan Pablo Botero T\.conda\envs\bienestar-tec
