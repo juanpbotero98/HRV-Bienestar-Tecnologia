@@ -15,12 +15,12 @@ if __name__ == "__main__":
     # OSC Setup
     client = udp_client.SimpleUDPClient(args.ip, args.port)
     
-    # Variable init
-    start = [ 0, 1, 1, 1, 1]  # [Pre start, olfative, video, sound, interactive]
-    hrv = [ 0, 0, args.VideoActivation, args.SoundActivation, 0] # [Pre start, olfative, video, sound, interactive]
-    print(hrv)
-    section_times = [10,240,240,240,240] 
-    section_names = ["Pre-Start","Olfative","Video","Sound","Interactive"]
+    # # Variable init
+    # start = [ 0, 1, 1, 1, 1]  # [Pre start, olfative, video, sound, interactive]
+    # hrv = [ 0, 0, args.VideoActivation, args.SoundActivation, 0] # [Pre start, olfative, video, sound, interactive]
+    # print(hrv)
+    # section_times = [10,240,240,240,240] 
+    # section_names = ["Pre-Start","Olfative","Video","Sound","Interactive"]
     # Main Loop
     init_time = time.time()
     while time.time()-init_time<args.time:

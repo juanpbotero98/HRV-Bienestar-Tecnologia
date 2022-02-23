@@ -19,7 +19,7 @@ the device acting as an API """
 uuid16_dict = {v: k for k, v in uuid16_dict.items()}
 
 ## This is the device MAC ID, please update with your device ID
-ADDRESS = "D6:A2:92:60:A9:FB"
+ADDRESS = "EA:F6:8F:5B:90:CF"
 
 ## UUID for model number ##
 MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
@@ -53,8 +53,46 @@ HR_UUID = "00002A37-0000-1000-8000-00805F9B34FB"
 ECG_WRITE = bytearray([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
 IBI_SET = bytearray([0x01, 0x01])
 
-def data_conv(sender, data):
-    print(', '.join('{:02x}'.format(x) for x in data))
+res = {}
+res["rr"] = []
+res["hr"] = []
+def data_conv_hr(sender,data):
+    """
+    data is a list of integers corresponding to readings from the BLE HR monitor
+    """
+
+    byte0 = data[0]
+    res["hrv_uint8"] = (byte0 & 1) == 0
+    sensor_contact = (byte0 >> 1) & 3
+    if sensor_contact == 2:
+        res["sensor_contact"] = "No contact detected"
+    elif sensor_contact == 3:
+        res["sensor_contact"] = "Contact detected"
+    else:
+        res["sensor_contact"] = "Sensor contact not supported"
+    res["ee_status"] = ((byte0 >> 3) & 1) == 1
+    res["rr_interval"] = ((byte0 >> 4) & 1) == 1
+
+    if res["hrv_uint8"]:
+        res["hr"].append(data[1])
+        i = 2
+    else:
+        res["hr"].append((data[2] << 8) | data[1])
+        i = 3
+
+    if res["ee_status"]:
+        res["ee"] = (data[i + 1] << 8) | data[i]
+        i += 2
+
+    if res["rr_interval"]:
+        while i < len(data):
+            # Note: Need to divide the value by 1024 to get in seconds
+            res["rr"].append((data[i + 1] << 8) | data[i])
+            i += 2
+
+    print("Heart Rate(bpm): {} | RR-Interval(ms): {}".format(res["hr"][-1],res["rr"]
+    [-1]))
+
 
 ## Keyboard Interrupt Handler
 def keyboardInterrupt_handler(signum, frame):
@@ -94,7 +132,7 @@ async def run(client, debug=False):
     #     await asyncio.sleep(1)
     # await client.stop_notify(PMD_DATA)
 
-    await client.start_notify(HR_UUID, data_conv)
+    await client.start_notify(HR_UUID, data_conv_hr)
 
     init_time = time.time()
     while time.time()-init_time<40:

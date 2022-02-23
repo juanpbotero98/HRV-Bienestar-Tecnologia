@@ -19,7 +19,7 @@ fnames = ['ECG_baseline.csv','ECG_olfative.csv','ECG_sound.csv','ECG_video.csv',
 
 # for path in reports_pathlist:
 #     export_path = os.path.join(hrv_reports_path,path,'IBI_GeneralData.csv')
-export_path = os.path.join(hrv_reports_path,'JuanPabloSoto-10-12-2021','IBI_GeneralData.csv')
+export_path = os.path.join(hrv_reports_path,'CarolynFinck-17-02','IBI_GeneralData.csv')
 with open(export_path,mode='w') as export_file:
     writer = csv.writer(export_file)
     header_row = ['IBI_baseline','IBI_olfative','IBI_sound','IBI_video','IBI_interactive','IBI_final']
@@ -27,7 +27,7 @@ with open(export_path,mode='w') as export_file:
 
     for ecg_fname in fnames:
         # ecg_path = os.path.join(hrv_reports_path,path,ecg_fname)
-        ecg_path = os.path.join(hrv_reports_path,'JuanPabloSoto-10-12-2021',ecg_fname)
+        ecg_path = os.path.join(hrv_reports_path,'CarolynFinck-17-02',ecg_fname)
         # all_ecg = np.
         with open(ecg_path) as ecg_file:
             csv_reader = csv.reader(ecg_file,delimiter = ',')
@@ -47,7 +47,7 @@ with open(export_path,mode='w') as export_file:
                     nni_results= hrv(nni=IBI,plot_ecg=False, plot_tachogram=False, show=False)
                     plt.close('all')
                     # tools.hrv_export(nni_results,efile=json_fname,path=os.path.join(hrv_reports_path,path,''))
-                    tools.hrv_export(nni_results,efile=json_fname,path=os.path.join(hrv_reports_path,'JuanPabloSoto-10-12-2021',''))
+                    tools.hrv_export(nni_results,efile=json_fname,path=os.path.join(hrv_reports_path,'CarolynFinck-17-02',''))
 
                     IBI.insert(0,ecg_fname)
                     writer.writerow(IBI)

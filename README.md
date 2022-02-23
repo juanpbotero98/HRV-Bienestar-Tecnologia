@@ -13,7 +13,7 @@ Este repositorio almacenará el código relacionado a la medición y análisis d
 
 - [ ] Clone el repositorio de github corriendo el siguiente comando (Asegúrese de estar en el folder en que quisiera almacenar el repositorio):
     ```
-        git clone https://github.com/juanpbotero98/DosiMOEMS_GUI.git    
+        git clone https://github.com/juanpbotero98/HRV-Bienestar-Tecnologia.git   
     ```
     Dado que el repositorio es privado se deben verificar las credenciales siguiendo las instrucciones dadas en la ventana de comandos.
 
@@ -26,13 +26,58 @@ Este repositorio almacenará el código relacionado a la medición y análisis d
 
 - [ ] Active el ambiente de Anaconda corriendo el siguiente comando:
     ```
-        conda activate dosiMOEMS
+        conda activate bienestar-tec
     ```
 
 - [ ] Verifique la instalación corriendo la interfaz gráfica, utilizando el siguiente comando:
     ```
         python3 Python\GUI_V1.py
     ```
+
+# Como correr la simulación OSC o el Demo de biofeedback
+
+- [ ] Abra Anaconda Command Promot y active el ambiente usando el siguiente comando:
+    ```
+        conda activate bienestar-tec
+    ```
+    
+- [ ] Dirigase a la carpeta del repositorio y entre a la carpeta de Demos:
+    ```
+        cd <Directorio a HRV-Bienestar-Tecnologia> (Ej. "C:\Users\Bienestar\Documentos\HRV-Bienestar-Tecnologia")
+        cd Demos
+    ```
+
+## Simulación OSC
+- [ ] Corra la simulación usando el siguiente comando:
+    ```
+        python OSC_Simulation.py --ip <ingrese su ip> --port <puerto OSC (default=8000)> --time <tiempo de simulación> --intervalo <intervalo de envio en segundos o fracciones de segundo> 
+    ```
+    Un ejemplo de ese comando:         
+    ```
+        python OSC_Simulation.py --ip 255.255.255.255 --port 8000 --time 120 --intervalo 0.5
+    ```
+
+## Demo Biofeedback
+- [ ] Para correr el demo debe primero aveiguar la dirección MAC del sensor que se este usando, para esto corra el siguiente comando: 
+    ```
+        python BLE_Scanner.py
+    ```
+    Debería ver un impresión en pantalla similar a la siguiente: 
+    ```
+        EA:F6:8F:5B:90:CF: Polar H10 9A333525
+        finished
+    ```
+    Copie la dirección que acompaña al nombre del sensor, en este caso "EA:F6:8F:5B:90:CF". Esta dirección es unica para cada sensor y es indispensable para correr el demo.
+
+- [ ] Corra el demo usando el siguiente comando:
+    ```
+        python BioFeedback_Demo.py --ip <ingrese su ip> --mac <ingrese la dirección obtenida en el punto anterior> --port <puerto OSC (default=8000)> --time <tiempo de simulación> --intervalo <intervalo de envio en segundos o fracciones de segundo> 
+    ```
+    Un ejemplo de ese comando:         
+    ```
+        python OSC_Simulation.py --ip 255.255.255.255 --mac --port 8000 --time 120 --intervalo 0.5
+    ```    
+
 
 # Links relevantes
 * pyHRV GitHub: https://github.com/PGomes92/pyhrv
