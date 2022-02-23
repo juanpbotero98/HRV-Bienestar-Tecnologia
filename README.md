@@ -78,6 +78,22 @@ Este repositorio almacenará el código relacionado a la medición y análisis d
         python OSC_Simulation.py --ip 255.255.255.255 --mac --port 8000 --time 120 --intervalo 0.5
     ```    
 
+# Actualización de los archivos, para futuras versiones:
+- [ ] Abra Anaconda Command Prompt y active el ambiente usando el siguiente comando:
+    ```
+        conda activate bienestar-tec
+    ```
+    
+- [ ] Dirigase a la carpeta del repositorio y entre a la carpeta de Demos:
+    ```
+        cd <Directorio a HRV-Bienestar-Tecnologia> (Ej. "C:\Users\Bienestar\Documentos\HRV-Bienestar-Tecnologia")
+    ```
+
+- [ ] Descargue e instale los nuevos archivos:
+    ```
+        git pull 
+    ```
+
 
 # Links relevantes
 * pyHRV GitHub: https://github.com/PGomes92/pyhrv
