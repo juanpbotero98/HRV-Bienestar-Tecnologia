@@ -86,8 +86,9 @@ Este repositorio almacenará el código relacionado a la medición y análisis d
     
 - [ ] Dirigase a la carpeta del repositorio y entre a la carpeta de Demos:
     ```
-        cd <Directorio a HRV-Bienestar-Tecnologia> (Ej. "C:\Users\Bienestar\Documentos\HRV-Bienestar-Tecnologia")
+        cd <Directorio a HRV-Bienestar-Tecnologia> 
     ```
+    (Ej. "C:\Users\Bienestar\Documentos\HRV-Bienestar-Tecnologia")
 
 - [ ] Descargue e instale los nuevos archivos:
     ```

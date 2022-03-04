@@ -183,7 +183,7 @@ class OperationModes_Popup():
 
     #setting window size
         window_width=180
-        window_height=150
+        window_height=190
         screenwidth = self.master.winfo_screenwidth()
         screenheight = self.master.winfo_screenheight()
         alignstr = '%dx%d+%d+%d' % (window_width, window_height, ((screenwidth - window_width) / 2)+400, 
@@ -241,7 +241,19 @@ class OperationModes_Popup():
         test_time_txtBox["justify"] = "center"
         test_time_txtBox["text"] = "test_time"
         test_time_txtBox.place(x=135,y=80,width=40,height=25)
-          
+
+    #setting OSC transmit mode check box
+        self.OSC_Transmit = tk.BooleanVar()
+        self.OSC_Transmit_chkBox = tk.Checkbutton(self.window)
+        self.OSC_Transmit_chkBox["justify"] = "left"
+        self.OSC_Transmit_chkBox["anchor"] = "w"
+        self.OSC_Transmit_chkBox["text"] = 'Transmitir OSC'
+        self.OSC_Transmit_chkBox["variable"] = self.OSC_Transmit
+        self.OSC_Transmit_chkBox["onvalue"] = True
+        self.OSC_Transmit_chkBox["offvalue"] = False
+        self.OSC_Transmit_chkBox.place(x=0,y=120,width=180,height = 25)
+        self.OSC_Transmit_chkBox.select()
+
     #setting close button
         self.button_close_BT = tk.Button(self.window)
         self.button_close_BT["bg"] = "#999999"
@@ -250,10 +262,11 @@ class OperationModes_Popup():
         self.button_close_BT["justify"] = "center"
         self.button_close_BT["text"] = "Close"
         self.button_close_BT["command"] = self.Close_BT_command
-        self.button_close_BT.place(x=0,y=115,width=180,height=30)
+        self.button_close_BT.place(x=0,y=155,width=180,height=30)
    
     def Close_BT_command(self):
-        self.test_time = int(test_time_txtBox.get())
+        if self.TestMode.get(): 
+            self.test_time = int(test_time_txtBox.get())
         self.finished_flag = True
         self.window.destroy()
         
