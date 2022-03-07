@@ -85,10 +85,10 @@ class GUI:
         )
  
     # Flags
-        self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stages
-        self.hrv_exported, self.ecg_saved = False, False
-        # OP Modes
-        self.OPmodes_popup,self.testmode, self.ctrl_group = False, False,False
+        self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stage 
+        self.hrv_exported, self.ecg_saved = False, False # Saving succes 
+        self.OPmodes_popup,self.testmode, self.ctrl_group = False, False,False # OP Modes
+        self.OSC_transmit = True # Transmitir OSC
 
     # Canvas operations
         #setting main tittle
@@ -320,7 +320,7 @@ class GUI:
         Export_HRV_BT["font"] = ft
         Export_HRV_BT["fg"] = "#000000"
         Export_HRV_BT["justify"] = "center"
-        Export_HRV_BT["text"] = "Exportar Analisis HRV"
+        Export_HRV_BT["text"] = "Guardar Datos"
         Export_HRV_BT["command"] = self.ExportHRV_BT_command
         Export_HRV_BT.place(x=520,y=440,width=170,height=25)
        
@@ -330,7 +330,7 @@ class GUI:
         Save_BT["font"] = ft
         Save_BT["fg"] = "#000000"
         Save_BT["justify"] = "center"
-        Save_BT["text"] = "Guardar ECG"
+        Save_BT["text"] = "SIN USO (TEMPORAL)"
         Save_BT["command"] = self.Save_BT_command
         Save_BT.place(x=520,y=475,width=170,height=25)
 
@@ -453,15 +453,16 @@ class GUI:
         if self.baseline_done:
             print('start')
             self.start_status = 1
-            asyncio.run(self.main_acquisition(loop = 4,transmit=True,section_time=self.section_time))
+            asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             self.experience_done = True
                      
             if len(self.general_ecg[1]) == 0:
                 self.experience_done = False
 
             final_time = time.time()
-            while time.time() - final_time < 30:
-                self.osc_utils.transmit(1,80,5)
+            if self.OSC_transmit:
+                while time.time() - final_time < 30:
+                    self.osc_utils.transmit(1,80,5)
         
         elif self.ctrl_group:
             print('started control group measurement')
@@ -471,9 +472,10 @@ class GUI:
 
         elif self.testmode:
             print('running test without baseline')
-            asyncio.run()
+            asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
+            self.restart_vars() 
+            # TODO Verify function
             
-
         else:
             self.gui_utils.error_popup('No se ha realizado la medición baseline')
 
@@ -489,9 +491,9 @@ class GUI:
 
     def Init_BT_command(self):
         self.verify_flags()
-        if self.ctrl_group:
-            self.gui_utils.error_popup('Error: Está en modo grupo control')
-        elif not self.baseline_done:
+        # if self.ctrl_group:
+        #     self.gui_utils.error_popup('Error: Está en modo grupo control')
+        if not self.baseline_done:
             self.cue = 0 # Cue variable that controls the experience flow
             self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
@@ -528,31 +530,40 @@ class GUI:
             self.gui_utils.error_popup('La experiencia interactiva aún no ha terminado')
 
     def Save_BT_command(self):
-        # file = FileDialog.asksaveasfile(title="Save Data File", mode="w", defaultextension="nni.txt")
-        # TODO: Manage ecg file save system.
-        self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
-        self.ecg_saved = True
-        print('Save')
+        # self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
+        # self.ecg_saved = True
+        self.gui_utils.error_popup('Botón sin funcionalidad...')
+
+        
 
     def ExportHRV_BT_command(self):
         try:
             # Export path changes depending on operation mode 
             if self.ctrl_group:
-                self.export_path = os.path.join(self.export_path,"Grupo_Control")
+                temp_export_path = os.path.join(self.export_path,"Grupo_Control")
                 fnames = ['Momento_1','Momento_2','Momento_3','Momento_4','Momento_5','Momento_6']
             else: 
-                self.export_path = os.path.join(self.export_path,"Experiencia_Mindfullness")
+                temp_export_path = os.path.join(self.export_path,"Experiencia_Mindfullness")
                 fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
             
             dir_name = self.Name_txtBox.get()
-            self.full_export_path = os.path.join(self.export_path,dir_name)
+            self.full_export_path = os.path.join(temp_export_path,dir_name)
             os.mkdir(self.full_export_path)
             
+            # Analyze ECG data and export HRV reports
             for i in range(len(fnames)):
                 self.hrv_utils.Export_HRV(fnames[i],os.path.join(self.full_export_path,""),self.general_ecg[i][0])
             self.hrv_exported = True
+            print('HRV Saved')
+            
+            self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
+            self.ecg_saved = True
+            print('ECG Saved')
+
+
         except:
             self.gui_utils.error_popup('No se ha ingresado el nombre del sujeto o el folder ya existe')
+            print(sys.exc_info()[0])
 
     def BLE_Scan_BT_command(self):
         device_list = asyncio.run(self.ble_utils.scan_devices())
@@ -653,11 +664,9 @@ class GUI:
                             self.fig.canvas.flush_events()
                             self.ax.set_xlim(left=n - 130, right=n)
                             n = n + 130
-                            if transmit:
-                                self.osc_utils.transmit(self.start_status,80,self.cue)
                         
-                        else:
-                            self.osc_utils.transmit(0,80,0)
+                        if transmit:
+                            self.osc_utils.transmit(self.start_status,80,self.cue)
 
                     if not self.baseline_done:
                         print("Saved ecg baseline in variable")
@@ -831,6 +840,7 @@ class GUI:
             if self.opmodes_popup.finished_flag:
                 self.testmode = self.opmodes_popup.TestMode.get()
                 self.ctrl_group = self.opmodes_popup.ControlGroup.get()
+                self.OSC_transmit = self.opmodes_popup.OSC_Transmit.get()
 
             if self.testmode:
                 self.section_time = self.opmodes_popup.test_time
