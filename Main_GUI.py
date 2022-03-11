@@ -53,11 +53,16 @@ class GUI:
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
         # TODO: Remove ^ and add self.general_nni = []\
        
-        # Container for time session time and data
+        # Data containers
         self.ecg_session_data = []
         self.ecg_session_time = []
         self.general_ecg = [[],[],[],[],[],[]] # Data container for ECG data [Init , olfative, sound, video, interactive, Final]
+        self.general_hr = [[],[],[],[],[],[]] # Data container for HR data [Init , olfative, sound, video, interactive, Final]
+        self.general_ibi = [[],[],[],[],[],[]] # Data container for IBI data [Init , olfative, sound, video, interactive, Final]
         self.cue = 1
+        self.HR_data = {}
+        self.HR_data["rr"] = []
+        self.HR_data["hr"] = []
     # BLE Variables
         # MAC Addres of the device to connect
         self.selected_MAC = ''
@@ -83,6 +88,8 @@ class GUI:
         self.BATTERY_LEVEL_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(
             uuid_dict.get("Battery Level")
         )
+        ## UUID for Request HR data 
+        self.HR_UUID = "00002A37-0000-1000-8000-00805F9B34FB"
  
     # Flags
         self.baseline_done, self.experience_done, self.final_done= False, False, False # Experience stage 
@@ -472,6 +479,7 @@ class GUI:
 
         elif self.testmode:
             print('running test without baseline')
+            self.start_status = 0
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             self.restart_vars() 
             # TODO Verify function
@@ -534,8 +542,6 @@ class GUI:
         # self.ecg_saved = True
         self.gui_utils.error_popup('Botón sin funcionalidad...')
 
-        
-
     def ExportHRV_BT_command(self):
         try:
             # Export path changes depending on operation mode 
@@ -546,21 +552,22 @@ class GUI:
                 temp_export_path = os.path.join(self.export_path,"Experiencia_Mindfullness")
                 fnames = ['HRV_baseline','HRV_olfative','HRV_sound','HRV_video','HRV_interactive','HRV_final']
             
+            # Manage directories and create output folder
             dir_name = self.Name_txtBox.get()
             self.full_export_path = os.path.join(temp_export_path,dir_name)
             os.mkdir(self.full_export_path)
             
+            # Save raw ECG data
+            self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path,self.general_hr,self.general_ibi)
+            self.ecg_saved = True
+            print('ECG Saved')
+
             # Analyze ECG data and export HRV reports
             for i in range(len(fnames)):
                 self.hrv_utils.Export_HRV(fnames[i],os.path.join(self.full_export_path,""),self.general_ecg[i][0])
             self.hrv_exported = True
             print('HRV Saved')
             
-            self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
-            self.ecg_saved = True
-            print('ECG Saved')
-
-
         except:
             self.gui_utils.error_popup('No se ha ingresado el nombre del sujeto o el folder ya existe')
             print(sys.exc_info()[0])
@@ -603,7 +610,6 @@ class GUI:
         
 # --------------- Helper functions ------------------
     # Acquisition Loop
-    # Acquisition Loop
     async def main_acquisition(self,loop,transmit,section_time):
         try:
             async with BleakClient(self.selected_MAC) as client:
@@ -619,7 +625,8 @@ class GUI:
 
                 ## ECG stream started
                 await client.start_notify(self.PMD_DATA, self.data_conv)
-                print("Collecting ECG data...")
+                await client.start_notify(self.HR_UUID, self.data_conv_hr)
+                print("Collecting ECG & HR data...")
 
                 # Managing progress bar and labels
                 if self.baseline_done or self.experience_done:
@@ -653,34 +660,47 @@ class GUI:
 
                         if len(self.ecg_session_data)>0:
                             if not started_flag:
+                                self.HR_data["hr"] = []
+                                self.HR_data["rr"] = []
                                 init_time = time.time()
                                 started_flag =True
                                 # print('entered if')
                         
                         if started_flag:
+                            # Update figure
                             plt.autoscale(enable=True, axis="y", tight=True)
                             self.ax.plot(self.ecg_session_data,color="r")
                             self.fig.canvas.draw()
                             self.fig.canvas.flush_events()
                             self.ax.set_xlim(left=n - 130, right=n)
                             n = n + 130
+                            # Update txt label
+
                         
                         if transmit:
-                            self.osc_utils.transmit(self.start_status,80,self.cue)
+                            self.osc_utils.transmit(self.start_status,self.bpm.get(),self.cue,self.HR_data["rr"][-1])
+                            self.bpm.set(self.HR_data["hr"][-1])
+                            self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
+                            
 
                     if not self.baseline_done:
-                        print("Saved ecg baseline in variable")
+                        print("Saved data baseline in variable")
                         self.general_ecg[i] = [self.ecg_session_data,self.ecg_session_time]
+                        self.general_hr[i] =  self.HR_data["hr"]
+                        self.general_ibi[i] = self.HR_data["rr"] 
                         self.baseline_done = True
 
                     elif not self.experience_done:
-                        print("saved ecg experience {} in variable".format(i))
+                        print("saved data experience {} in variable".format(i))
                         self.general_ecg[i+1] = [self.ecg_session_data,self.ecg_session_time]
-                        # self.experience_done = True
+                        self.general_hr[i+1] =  self.HR_data["hr"]
+                        self.general_ibi[i+1] = self.HR_data["rr"] 
                     
                     else: 
-                        print("Saved ecg final in variable")
+                        print("Saved data final in variable")
                         self.general_ecg[-1] = [self.ecg_session_data,self.ecg_session_time]
+                        self.general_hr[i] =  self.HR_data["hr"]
+                        self.general_ibi[i] = self.HR_data["rr"] 
                         
                     
                     # Debugging 
@@ -775,8 +795,8 @@ class GUI:
         except: 
             self.gui_utils.error_popup('No fue posible establecer conexión con el dispositivo')
 
-    def data_print(self,sender, data):
-        print(', '.join('{:02x}'.format(x) for x in data))
+    # def data_print(self,sender, data):
+    #     print(', '.join('{:02x}'.format(x) for x in data))
 
     # Byte conversion of the Hexadecimal stream
     def data_conv(self, sender, data):
@@ -801,6 +821,40 @@ class GUI:
             bytearray(data[offset : offset + length]), byteorder="little", signed=False,
         )
 
+    def data_conv_hr(self,sender,data):
+        """
+        data is a list of integers corresponding to readings from the BLE HR monitor
+        """
+
+        byte0 = data[0]
+        self.HR_data["hrv_uint8"] = (byte0 & 1) == 0
+        sensor_contact = (byte0 >> 1) & 3
+        if sensor_contact == 2:
+            self.HR_data["sensor_contact"] = "No contact detected"
+        elif sensor_contact == 3:
+            self.HR_data["sensor_contact"] = "Contact detected"
+        else:
+            self.HR_data["sensor_contact"] = "Sensor contact not supported"
+        self.HR_data["ee_status"] = ((byte0 >> 3) & 1) == 1
+        self.HR_data["rr_interval"] = ((byte0 >> 4) & 1) == 1
+
+        if self.HR_data["hrv_uint8"]:
+            self.HR_data["hr"].append(data[1])
+            i = 2
+        else:
+            self.HR_data["hr"].append((data[2] << 8) | data[1])
+            i = 3
+
+        if self.HR_data["ee_status"]:
+            self.HR_data["ee"] = (data[i + 1] << 8) | data[i]
+            i += 2
+
+        if self.HR_data["rr_interval"]:
+            while i < len(data):
+                # Note: Need to divide the value by 1024 to get in seconds
+                self.HR_data["rr"].append((data[i + 1] << 8) | data[i])
+                i += 2
+    
     # Get device battery
     async def get_battery(self):
         try:
@@ -844,6 +898,13 @@ class GUI:
 
             if self.testmode:
                 self.section_time = self.opmodes_popup.test_time
+                print("Test mode selected")
+            
+            if self.ctrl_group:
+                print("Control group mode selected")
+
+            if not self.OSC_transmit:
+                print("OSC communication OFF")
             
 # ------------------ Main Code ----------------------
 if __name__ == "__main__":

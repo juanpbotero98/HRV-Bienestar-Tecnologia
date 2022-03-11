@@ -23,9 +23,10 @@ class OSC_CommUtils:
         self.port = 8000
         self.client = udp_client.SimpleUDPClient(self.ip,self.port)
     
-    def transmit(self,start_status,heart_rate,cue):
+    def transmit(self,start_status,heart_rate,cue,ibi):
         self.client.send_message("/Start", start_status)
         self.client.send_message("/HR", heart_rate)
+        self.client.send_message("/IBI",ibi)
         self.client.send_message("/Cue", cue)
         # print(" {}, {}, {}".format(start_status,cue,heart_rate))     
 
@@ -52,7 +53,7 @@ class HRV_Utils:
         plt.close('all')
         tools.hrv_export(results,efile=fname,path=export_path)
     
-    def Save_ECG(ecg,finnished,export_path):
+    def Save_ECG(ecg,finnished,export_path,hr,ibi):
         row_names = ['ECG raw', 'ECG Filtrado','Tiempo (s)', 'Ritmo Cardiaco', 'Picos R-R', 'IBI Serie']
         fnames = ['ECG_baseline','ECG_olfative','ECG_sound','ECG_video','ECG_interactive','ECG_final']
         # writer = csv.DictWriter(file,fieldnames=fnames)
@@ -65,7 +66,7 @@ class HRV_Utils:
                 loaded_ecg= biosppy.signals.ecg.ecg(ecg[i][0],sampling_rate=130,path=image_path)
                 plt.close('all')    
                 # Get Heart Rate data
-                HR_data = loaded_ecg[5].tolist()
+                HR_data = hr[i] # loaded_ecg[5].tolist()
                 HR_data.insert(0,'Heart Rate')
 
                 # Get time axis
@@ -78,14 +79,12 @@ class HRV_Utils:
 
                 # Get R-peaks series using biosppy
                 rpeaks = loaded_ecg[2]
-                
-                # Compute NNI series
-                nni = tools.nn_intervals(rpeaks).tolist()
                 rpeaks = rpeaks.tolist()
                 rpeaks.insert(0,'Rpeaks')
                 
-                
-                
+                # Compute NNI series
+                # nni = tools.nn_intervals(rpeaks).tolist()
+                nni = ibi[i]
                 nni.insert(0,'IBI Series')
 
                 # Write file 
