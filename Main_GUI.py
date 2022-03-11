@@ -525,11 +525,11 @@ class GUI:
             self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1, transmit = False,section_time=self.section_time))
             self.final_done = True
-            print(len(self.general_ecg[0]))
-            print(len(self.general_ecg[1]))
-            print(len(self.general_ecg[2]))
-            print(len(self.general_ecg[3]))
-            print(len(self.general_ecg[4]))
+            print(len(self.general_ecg[0][0]))
+            print(len(self.general_ecg[1][0]))
+            print(len(self.general_ecg[2][0]))
+            print(len(self.general_ecg[3][0]))
+            print(len(self.general_ecg[4][0]))
             
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó, si no intente de nuevo')
