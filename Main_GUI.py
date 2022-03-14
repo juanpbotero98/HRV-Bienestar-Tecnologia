@@ -481,6 +481,10 @@ class GUI:
             print('running test without baseline')
             self.start_status = 0
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
+            final_time = time.time()
+            if self.OSC_transmit:
+                while time.time() - final_time < 30:
+                    self.osc_utils.transmit(1,80,5)
             self.restart_vars() 
             # TODO Verify function
             
@@ -678,9 +682,10 @@ class GUI:
 
                         
                         if transmit:
-                            self.osc_utils.transmit(self.start_status,self.bpm.get(),self.cue,self.HR_data["rr"][-1])
-                            self.bpm.set(self.HR_data["hr"][-1])
-                            self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
+                            if len(self.HR_data["rr"]) > 0:
+                                self.osc_utils.transmit(self.start_status,self.bpm.get(),self.cue,self.HR_data["rr"][-1])
+                                self.bpm.set(self.HR_data["hr"][-1])
+                                self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
                             
 
                     if not self.baseline_done:
