@@ -28,7 +28,10 @@ class OSC_CommUtils:
         self.client.send_message("/HR", heart_rate)
         self.client.send_message("/IBI",ibi)
         self.client.send_message("/Cue", cue)
-        # print(" {}, {}, {}".format(start_status,cue,heart_rate))     
+        # print(" {}, {}, {}".format(start_status,cue,heart_rate))
+
+    def custom_transmit(self,variable,value):
+        self.client.send_message(variable,value)     
 
 # -------------------- HRV Utils -----------------------
 class HRV_Utils:
@@ -105,7 +108,7 @@ class GUI_Utils:
         self.window.title("Error")
         error_variable = tk.StringVar()
     #setting window size
-        window_width=len(error_msg)*6
+        window_width=len(error_msg)*8
         window_height=80
         screenwidth = self.master.winfo_screenwidth()
         screenheight = self.master.winfo_screenheight()

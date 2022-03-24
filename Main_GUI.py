@@ -20,6 +20,9 @@ import asyncio
 from bleak import BleakClient
 from Utils import HRV_Utils, OSC_CommUtils, GUI_Utils, BLE_Utils, OperationModes_Popup
 from bleak.uuids import uuid16_dict
+from PIL import Image, ImageTk
+from tkinter import *
+import random
 
 ####################################################################################################################################
 ###############   TODO list:                                                                                         ############### 
@@ -48,7 +51,9 @@ class GUI:
 
         self.section_time = 240 
         self.section_names = ["Experiecia olfativa",  "Experiencia de sonido", "Experiencia de video","Experiencia interactiva"]
-        self.export_path = os.path.join(os.path.abspath(os.getcwd()),"HRV_Reports")
+        self.current_path = os.path.abspath(os.getcwd())
+        self.export_path = os.path.join(self.current_path,"HRV_Reports")
+        self.image_path = os.path.join(self.current_path,"Icons")
 
         self.nni_list = [pyhrv.utils.load_sample_nni()]*6 #For testing purpouses
         # TODO: Remove ^ and add self.general_nni = []\
@@ -63,6 +68,14 @@ class GUI:
         self.HR_data = {}
         self.HR_data["rr"] = []
         self.HR_data["hr"] = []
+
+        # Biofeedback Color Pallet
+        self.feedback_color = [3877,3098,3085,3076,3069,3064,2336,915]
+
+    # Button Icon Images
+        settings_icon_realsize = PhotoImage(file = os.path.join(self.image_path,'Settings_Icon.png'))
+        self.settings_icon = settings_icon_realsize.subsample(3,3)
+
     # BLE Variables
         # MAC Addres of the device to connect
         self.selected_MAC = ''
@@ -96,6 +109,7 @@ class GUI:
         self.hrv_exported, self.ecg_saved = False, False # Saving succes 
         self.OPmodes_popup,self.testmode, self.ctrl_group = False, False,False # OP Modes
         self.OSC_transmit = True # Transmitir OSC
+        self.OSC_connected = False # Conectado a servidor OSC
 
     # Canvas operations
         #setting main tittle
@@ -390,8 +404,9 @@ class GUI:
         Mode_Popup_BT["fg"] = "#000000"
         Mode_Popup_BT["justify"] = "center"
         Mode_Popup_BT["text"] = "..."
+        Mode_Popup_BT["image"] = self.settings_icon
         Mode_Popup_BT["command"] = self.Mode_Popup_BT_command
-        Mode_Popup_BT.place(x=665,y=625,width=25,height=13)
+        Mode_Popup_BT.place(x=665,y=625,width=25,height=18)
 
     # BLE Settings Panel
         #setting BLE Settings title label
@@ -457,8 +472,16 @@ class GUI:
 
     def Start_BT_command(self):
         self.verify_flags()
-        if self.baseline_done:
+        if self.OSC_transmit and not self.OSC_connected:
+            self.gui_utils.error_popup("No está conectado a OSC")
+
+        elif self.baseline_done:
             print('start')
+            
+            # Randomize the color pallet of the biofeedback
+            if self.OSC_transmit:
+                self.osc_utils.custom_transmit("COLOR",random.choice(self.feedback_color))
+
             self.start_status = 1
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             self.experience_done = True
@@ -468,7 +491,7 @@ class GUI:
 
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 30:
+                while time.time() - final_time < 15:
                     self.osc_utils.transmit(1,80,5,0)
         
         elif self.ctrl_group:
@@ -483,7 +506,7 @@ class GUI:
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 30:
+                while time.time() - final_time < 15:
                     self.osc_utils.transmit(1,80,5,0)
             self.restart_vars() 
             # TODO Verify function
@@ -511,6 +534,10 @@ class GUI:
             self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1,transmit = False,section_time=self.section_time))
             self.done_mssg.place(x=600,y=300,width=75,height=25)
+            final_time = time.time()
+            if self.OSC_transmit:
+                while time.time() - final_time < 15:
+                    self.osc_utils.transmit(0,0,0,0)
         elif self.baseline_done and self.final_done:
             print("Empezó una nueva medición y se reiniciaron las variables")
             self.restart_vars()
@@ -518,7 +545,11 @@ class GUI:
             self.start_status = 0 # Start variable that controls the experience start/stop
             self.measurement_status.set('Estado:        Baseline')
             asyncio.run(self.main_acquisition(loop = 1, transmit = False,section_time=self.section_time))
-            self.done_mssg.place(x=600,y=300,width=75,height=25)    
+            self.done_mssg.place(x=600,y=300,width=75,height=25) 
+            final_time = time.time()
+            if self.OSC_transmit:
+                while time.time() - final_time < 15:
+                    self.osc_utils.transmit(0,0,0,0)   
         else:
             self.gui_utils.error_popup('La medicion de linea de base ya se ha realizado')
 
@@ -529,6 +560,11 @@ class GUI:
             self.measurement_status.set('Estado:        Final')
             asyncio.run(self.main_acquisition(loop = 1, transmit = False,section_time=self.section_time))
             self.final_done = True
+            
+            final_time = time.time()
+            if self.OSC_transmit:
+                while time.time() - final_time < 15:
+                    self.osc_utils.transmit(0,0,0,0)
             print(len(self.general_ecg[0][0]))
             print(len(self.general_ecg[1][0]))
             print(len(self.general_ecg[2][0]))
@@ -716,9 +752,10 @@ class GUI:
                     
                     # Debugging 
                     # print(len(self.ecg_session_data))
-                    self.cue += 1
-                    # Restart figure
-                    self.ax.cla()
+                    if len(self.ecg_session_data)>0:
+                        self.cue += 1
+                        # Restart figure
+                        self.ax.cla()
                 # Stop progressbar
                 self.measurement_pb.stop()
                 self.measurement_pb.destroy()
