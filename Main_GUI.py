@@ -370,7 +370,7 @@ class GUI:
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
         self.IP_txtBox.place(x=610,y=560, width=75,height=25)
-        self.IP_txtBox.insert(0,"157.253.26.20")
+        self.IP_txtBox.insert(0,"157.253.26.191")
        
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
@@ -469,7 +469,7 @@ class GUI:
             final_time = time.time()
             if self.OSC_transmit:
                 while time.time() - final_time < 30:
-                    self.osc_utils.transmit(1,80,5)
+                    self.osc_utils.transmit(1,80,5,0)
         
         elif self.ctrl_group:
             print('started control group measurement')
@@ -484,7 +484,7 @@ class GUI:
             final_time = time.time()
             if self.OSC_transmit:
                 while time.time() - final_time < 30:
-                    self.osc_utils.transmit(1,80,5)
+                    self.osc_utils.transmit(1,80,5,0)
             self.restart_vars() 
             # TODO Verify function
             
@@ -534,6 +534,11 @@ class GUI:
             print(len(self.general_ecg[2][0]))
             print(len(self.general_ecg[3][0]))
             print(len(self.general_ecg[4][0]))
+            # Restart cues
+            final_time = time.time()
+            if self.OSC_transmit:
+                while time.time() - final_time < 30:
+                    self.osc_utils.transmit(0,0,0,0)
             
         elif self.final_done:
             self.gui_utils.error_popup('La medicion final ya se realizó, si no intente de nuevo')
@@ -679,13 +684,14 @@ class GUI:
                             self.ax.set_xlim(left=n - 130, right=n)
                             n = n + 130
                             # Update txt label
-
                         
-                        if transmit:
-                            if len(self.HR_data["rr"]) > 0:
-                                self.osc_utils.transmit(self.start_status,self.bpm.get(),self.cue,self.HR_data["rr"][-1])
-                                self.bpm.set(self.HR_data["hr"][-1])
-                                self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
+                            if transmit:
+                                if len(self.HR_data["rr"]) > 0:
+                                    self.osc_utils.transmit(self.start_status,self.bpm.get(),self.cue,self.HR_data["rr"][-1])
+                                    self.bpm.set(self.HR_data["hr"][-1])
+                                    self.HeartRate.set('Frecuencia Cardiaca (bpm): ' + str(self.bpm.get()))
+                        
+
                             
 
                     if not self.baseline_done:
