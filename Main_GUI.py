@@ -351,7 +351,7 @@ class GUI:
         Save_BT["font"] = ft
         Save_BT["fg"] = "#000000"
         Save_BT["justify"] = "center"
-        Save_BT["text"] = "SIN USO (TEMPORAL)"
+        Save_BT["text"] = "Reproducir Intrucciones"
         Save_BT["command"] = self.Save_BT_command
         Save_BT.place(x=520,y=475,width=170,height=25)
 
@@ -481,10 +481,11 @@ class GUI:
 
         elif self.baseline_done:
             print('start')
-            
+
             # Randomize the color pallet of the biofeedback
             if self.OSC_transmit:
                 self.osc_utils.custom_transmit("COLOR",random.choice(self.feedback_color))
+                self.osc_utils.custom_transmit("/Audio",1)
 
             self.start_status = 1
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
@@ -506,6 +507,13 @@ class GUI:
 
         elif self.testmode:
             print('running test without baseline')
+            
+            # Randomize the color pallet of the biofeedback
+            if self.OSC_transmit:
+                final_time = time.time()
+                self.osc_utils.custom_transmit("/COLOR",random.choice(self.feedback_color))
+                self.osc_utils.custom_transmit("/Audio",0)
+            
             self.start_status = 0
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             final_time = time.time()
@@ -542,6 +550,7 @@ class GUI:
             if self.OSC_transmit:
                 while time.time() - final_time < 15:
                     self.osc_utils.transmit(0,0,0,0)
+
         elif self.baseline_done and self.final_done:
             print("Empezó una nueva medición y se reiniciaron las variables")
             self.restart_vars()
@@ -589,7 +598,11 @@ class GUI:
     def Save_BT_command(self):
         # self.hrv_utils.Save_ECG(self.general_ecg,self.final_done,self.full_export_path)
         # self.ecg_saved = True
-        self.gui_utils.error_popup('Botón sin funcionalidad...')
+        # self.gui_utils.error_popup('Botón sin funcionalidad...')
+        if self.OSC_connected:
+            self.osc_utils.custom_transmit("/Audio",1)
+        else:
+            self.gui_utils.error_popup('No está conectado a OSC')
 
     def ExportHRV_BT_command(self):
         try:
