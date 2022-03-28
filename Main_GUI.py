@@ -351,7 +351,7 @@ class GUI:
         Save_BT["font"] = ft
         Save_BT["fg"] = "#000000"
         Save_BT["justify"] = "center"
-        Save_BT["text"] = "SIN USO (TEMPORAL)"
+        Save_BT["text"] = "Reproducir Intrucciones"
         Save_BT["command"] = self.Save_BT_command
         Save_BT.place(x=520,y=475,width=170,height=25)
 
@@ -506,7 +506,6 @@ class GUI:
             
             # Randomize the color pallet of the biofeedback
             if self.OSC_transmit:
-                print('Heart color sent')
                 final_time = time.time()
                 self.osc_utils.custom_transmit("/COLOR",random.choice(self.feedback_color))
                 self.osc_utils.custom_transmit("/Audio",0)
