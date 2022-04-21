@@ -472,8 +472,12 @@ class GUI:
 
     def Start_BT_command(self):
         self.verify_flags()
-        if self.OSC_transmit and not self.OSC_connected:
+
+        if (self.OSC_transmit) and (not self.OSC_connected):
             self.gui_utils.error_popup("No está conectado a OSC")
+            print(self.OSC_transmit)
+            print(self.OSC_connected)
+            print(self.OSC_transmit or (not self.OSC_connected))
 
         elif self.baseline_done:
             print('start')
@@ -582,7 +586,7 @@ class GUI:
             # Restart cues
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 30:
+                while time.time() - final_time < 15:
                     self.osc_utils.transmit(0,0,0,0)
             
         elif self.final_done:
