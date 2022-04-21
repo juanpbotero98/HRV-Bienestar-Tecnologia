@@ -384,7 +384,7 @@ class GUI:
         self.IP_txtBox["justify"] = "center"
         self.IP_txtBox["text"] = "IP"
         self.IP_txtBox.place(x=610,y=560, width=75,height=25)
-        self.IP_txtBox.insert(0,"157.253.26.191")
+        self.IP_txtBox.insert(0,"157.253.26.229")
        
         #OSC Connect Button
         OSC_Connect_BT = tk.Button(root)
@@ -480,8 +480,8 @@ class GUI:
 
             # Randomize the color pallet of the biofeedback
             if self.OSC_transmit:
-                self.osc_utils.custom_transmit("COLOR",random.choice(self.feedback_color))
-                self.osc_utils.custom_transmit("/Audio",1)
+                self.osc_utils.custom_transmit("/COLOR",random.choice(self.feedback_color))
+                self.osc_utils.custom_transmit("/Audio",0)
 
             self.start_status = 1
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
@@ -492,8 +492,8 @@ class GUI:
 
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 15:
-                    self.osc_utils.transmit(1,80,5,0)
+                # while time.time() - final_time < 15:
+                self.osc_utils.transmit(1,80,5,0)
         
         elif self.ctrl_group:
             print('started control group measurement')
@@ -514,8 +514,8 @@ class GUI:
             asyncio.run(self.main_acquisition(loop = 4,transmit=self.OSC_transmit,section_time=self.section_time))
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 15:
-                    self.osc_utils.transmit(1,80,5,0)
+                # while time.time() - final_time < 15:
+                self.osc_utils.transmit(1,80,5,0)
             self.restart_vars() 
             # TODO Verify function
             
@@ -544,8 +544,8 @@ class GUI:
             self.done_mssg.place(x=600,y=300,width=75,height=25)
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 15:
-                    self.osc_utils.transmit(0,0,0,0)
+                # while time.time() - final_time < 15:
+                self.osc_utils.transmit(0,0,0,0)
 
         elif self.baseline_done and self.final_done:
             print("Empezó una nueva medición y se reiniciaron las variables")
@@ -572,8 +572,8 @@ class GUI:
             
             final_time = time.time()
             if self.OSC_transmit:
-                while time.time() - final_time < 15:
-                    self.osc_utils.transmit(0,0,0,0)
+                # while time.time() - final_time < 15:
+                self.osc_utils.transmit(0,0,0,0)
             print(len(self.general_ecg[0][0]))
             print(len(self.general_ecg[1][0]))
             print(len(self.general_ecg[2][0]))

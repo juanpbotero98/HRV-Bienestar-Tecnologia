@@ -1,9 +1,9 @@
 import os 
 import json
 import csv
-hrv_reports_path = os.path.join(os.getcwd(),'HRV_Reports')
+hrv_reports_path = os.path.join(os.getcwd(),'HRV_Reports','Grupo_Control')
 reports_pathlist = os.listdir(hrv_reports_path)
-fnames = ['HRV_baseline.json','HRV_olfative.json','HRV_sound.json','HRV_video.json','HRV_interactive.json','HRV_final.json']
+fnames = ['Momento_1.json','Momento_2.json','Momento_3.json','Momento_4.json','Momento_5.json','Momento_6.json']
 
 export_path = os.path.join(os.getcwd(),'test.csv')
 
